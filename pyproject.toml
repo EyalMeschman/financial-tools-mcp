@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "exchange-rate-mcp"
+name = "financial-tools-mcp"
 version = "0.1.0"
-description = "MCP tool that returns the USD → ILS exchange rate for any given date"
+description = "Financial tools including MCP exchange rate service and invoice data extraction"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.12"
@@ -14,6 +14,11 @@ dependencies = [
     "python-dateutil==2.9.0",
     "mcp>=1.9.2",
     "claude-code>=0.0.1",
+    "azure-ai-documentintelligence>=1.0.2",
+    "python-dotenv>=1.1.1",
+    "pytest>=8.4.1",
+    "pytest-mock>=3.14.1",
+    "requests-mock>=1.12.1",
 ]
 
 [project.optional-dependencies]
