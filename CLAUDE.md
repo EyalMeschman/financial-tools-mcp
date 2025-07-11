@@ -12,7 +12,7 @@ pip install -e ".[dev]"  # Install with dev dependencies
 **Code Quality:**
 ```bash
 black .        # Format code (line-length 140)
-ruff .         # Lint code
+ruff check .   # Lint code
 pytest         # Run all tests
 ```
 

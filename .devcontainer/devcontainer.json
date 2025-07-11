@@ -18,7 +18,8 @@
 				"GitHub.copilot",
 				"eamodio.gitlens",
 				"redhat.vscode-yaml",
-				"ms-vscode.vscode-json"
+				"ms-vscode.vscode-json",
+				"anthropic.claude-code"
 			],
 			"settings": {
 				"python.defaultInterpreterPath": "/usr/local/bin/python",
