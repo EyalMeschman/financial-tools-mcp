@@ -11,6 +11,10 @@ RUN apt-get update && apt-get install -y \
     tree \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
 # Set working directory
 WORKDIR /workspace
 
@@ -41,6 +45,12 @@ RUN chown -R vscode:vscode /workspace
 
 # Switch to vscode user
 USER vscode
+
+# Configure npm to use user directory and install claude-code
+RUN npm config set prefix ~/.npm-global && \
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc && \
+    export PATH=~/.npm-global/bin:$PATH && \
+    npm install -g @anthropic-ai/claude-code
 
 # Expose the default MCP port (though MCP typically uses stdio)
 EXPOSE 8000

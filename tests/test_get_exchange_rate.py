@@ -2,15 +2,16 @@
 
 import os
 import tempfile
+from typing import Any, Callable, Dict, Optional
 from unittest.mock import patch
 
 import pytest
 import requests_mock
 
-from exchange_rate_mcp.tools import _load_cache, _normalize_date, _save_cache, mcp
+from mcp_tools.exchange_rate import _load_cache, _normalize_date, _save_cache, mcp
 
 
-def get_exchange_rate_function():
+def get_exchange_rate_function() -> Optional[Callable[..., Dict[str, Any]]]:
     """Helper to get the exchange rate function from the MCP instance."""
     for tool in mcp._tool_manager._tools.values():
         if hasattr(tool, "fn") and tool.fn.__name__ == "get_exchange_rate":
@@ -35,7 +36,7 @@ class TestGetExchangeRate:
             # Test with a temporary cache to avoid side effects
             with tempfile.TemporaryDirectory() as tmpdir:
                 cache_path = os.path.join(tmpdir, "test_cache.json")
-                with patch("exchange_rate_mcp.tools.CACHE_PATH", cache_path):
+                with patch("mcp_tools.exchange_rate.CACHE_PATH", cache_path):
                     # Use default currencies (USD to ILS)
                     result = get_exchange_rate_func("2025-07-10")
 
@@ -58,7 +59,7 @@ class TestGetExchangeRate:
             # Test with a temporary cache to avoid side effects
             with tempfile.TemporaryDirectory() as tmpdir:
                 cache_path = os.path.join(tmpdir, "test_cache.json")
-                with patch("exchange_rate_mcp.tools.CACHE_PATH", cache_path):
+                with patch("mcp_tools.exchange_rate.CACHE_PATH", cache_path):
                     result = get_exchange_rate_func("2025-07-10", "EUR", "GBP")
 
                     assert result == expected_response
@@ -75,7 +76,7 @@ class TestGetExchangeRate:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = os.path.join(tmpdir, "test_cache.json")
-            with patch("exchange_rate_mcp.tools.CACHE_PATH", cache_path):
+            with patch("mcp_tools.exchange_rate.CACHE_PATH", cache_path):
                 # First call - should hit API
                 with requests_mock.Mocker() as m:
                     m.get("https://api.frankfurter.app/2025-07-10?from=USD&to=ILS", json=expected_response)
@@ -99,7 +100,7 @@ class TestGetExchangeRate:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = os.path.join(tmpdir, "test_cache.json")
-            with patch("exchange_rate_mcp.tools.CACHE_PATH", cache_path):
+            with patch("mcp_tools.exchange_rate.CACHE_PATH", cache_path):
                 with requests_mock.Mocker() as m:
                     m.get("https://api.frankfurter.app/2025-07-10?from=USD&to=ILS", json=usd_ils_response)
                     m.get("https://api.frankfurter.app/2025-07-10?from=EUR&to=GBP", json=eur_gbp_response)
@@ -122,7 +123,7 @@ class TestGetExchangeRate:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = os.path.join(tmpdir, "test_cache.json")
-            with patch("exchange_rate_mcp.tools.CACHE_PATH", cache_path):
+            with patch("mcp_tools.exchange_rate.CACHE_PATH", cache_path):
                 with requests_mock.Mocker() as m:
                     m.get("https://api.frankfurter.app/2025-07-10?from=USD&to=ILS", json=expected_response)
 
@@ -143,7 +144,7 @@ class TestGetExchangeRate:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = os.path.join(tmpdir, "test_cache.json")
-            with patch("exchange_rate_mcp.tools.CACHE_PATH", cache_path):
+            with patch("mcp_tools.exchange_rate.CACHE_PATH", cache_path):
                 with requests_mock.Mocker() as m:
                     m.get("https://api.frankfurter.app/2025-07-10?from=USD&to=ILS", status_code=500, text="Internal Server Error")
 
@@ -168,7 +169,7 @@ class TestHelperFunctions:
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = os.path.join(tmpdir, "test_cache.json")
 
-            with patch("exchange_rate_mcp.tools.CACHE_PATH", cache_path):
+            with patch("mcp_tools.exchange_rate.CACHE_PATH", cache_path):
                 # Test empty cache
                 assert _load_cache() == {}
 
