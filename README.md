@@ -83,7 +83,7 @@ uv pip install -e ".[dev]"
 black .
 
 # Lint code
-ruff .
+ruff check .
 
 # Run tests
 pytest

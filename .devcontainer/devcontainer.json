@@ -18,7 +18,8 @@
 				"GitHub.copilot",
 				"eamodio.gitlens",
 				"redhat.vscode-yaml",
-				"ms-vscode.vscode-json"
+				"ms-vscode.vscode-json",
+				"anthropic.claude-code"
 			],
 			"settings": {
 				"python.defaultInterpreterPath": "/usr/local/bin/python",
@@ -40,7 +41,7 @@
 	],
 	"postCreateCommand": "pip install -e .[dev]",
 	"mounts": [
-		"source=exchange-rate-cache,target=/home/vscode/.exchange_rate_cache.json,type=volume"
+		"source=exchange-rate-cache,target=/home/vscode/.cache,type=volume"
 	],
 	"remoteUser": "vscode",
 	"features": {
