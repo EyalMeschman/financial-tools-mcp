@@ -6,12 +6,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Install additional system tools for development
 RUN apt-get update && apt-get install -y \
-    curl \
     jq \
-    tree \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js and npm
+    # Install Node.js and npm
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs
 
@@ -27,12 +25,12 @@ COPY LICENSE ./
 COPY src/ ./src/
 COPY server.py ./
 
-# Install the project with dev dependencies
-RUN pip install -e ".[dev]"
+# Install the project with dev dependencies using uv
+RUN uv pip install --system -e ".[dev]"
 
 # Create cache directory with proper permissions
-RUN mkdir -p /home/vscode && \
-    touch /home/vscode/.exchange_rate_cache.json && \
+RUN mkdir -p /home/vscode/.cache && \
+    touch /home/vscode/.cache/exchange_rate_cache.json && \
     chown -R vscode:vscode /home/vscode
 
 # Copy remaining project files
@@ -51,9 +49,6 @@ RUN npm config set prefix ~/.npm-global && \
     echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc && \
     export PATH=~/.npm-global/bin:$PATH && \
     npm install -g @anthropic-ai/claude-code
-
-# Expose the default MCP port (though MCP typically uses stdio)
-EXPOSE 8000
 
 # Set environment variable for Python path
 ENV PYTHONPATH=/workspace/src
