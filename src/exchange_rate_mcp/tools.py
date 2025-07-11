@@ -8,7 +8,7 @@ import requests
 from dateutil import parser as date_parser
 from mcp.server.fastmcp import FastMCP
 
-CACHE_PATH = os.path.expanduser("~/.exchange_rate_cache.json")
+CACHE_PATH = os.path.expanduser("~/.cache/exchange_rate_cache.json")
 
 # Create FastMCP instance
 mcp = FastMCP("exchange-rate-mcp")

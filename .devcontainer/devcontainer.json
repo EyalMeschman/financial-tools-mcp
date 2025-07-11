@@ -40,7 +40,7 @@
 	],
 	"postCreateCommand": "pip install -e .[dev]",
 	"mounts": [
-		"source=exchange-rate-cache,target=/home/vscode/.exchange_rate_cache.json,type=volume"
+		"source=exchange-rate-cache,target=/home/vscode/.cache,type=volume"
 	],
 	"remoteUser": "vscode",
 	"features": {
