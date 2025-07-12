@@ -7,7 +7,6 @@ This directory contains the development container configuration for the Exchange
 - **Python 3.12.6** environment
 - **Pre-configured VS Code extensions** for Python development
 - **Automatic dependency installation** via pip
-- **Persistent exchange rate cache** across container restarts
 - **Git and GitHub CLI** pre-installed
 
 ## Quick Start
@@ -50,13 +49,11 @@ python server.py
 ## Volume Mounts
 
 - **Source Code**: Your project files are mounted at `/workspace`
-- **Cache**: Exchange rate cache is persisted in a Docker volume
 
 ## Environment
 
 - **Working Directory**: `/workspace`
 - **Python Path**: Includes `/workspace/src`
-- **Cache Location**: `/home/vscode/.exchange_rate_cache.json`
 
 ## Testing the Setup
 

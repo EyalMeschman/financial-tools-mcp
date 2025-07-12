@@ -3,10 +3,13 @@
 import os
 from unittest.mock import Mock, patch
 
-from extractors.invoice_extractor import (
+from src.extractors.invoice_extractor import (
+    Content,
     InvoiceData,
+    ValueCurrency,
     check_usage_quota,
     extract_invoice_data_azure,
+    from_azure_response,
 )
 
 
@@ -16,25 +19,18 @@ class TestInvoiceData:
     def test_from_azure_response_success(self):
         """Test successful creation from Azure response."""
         # Mock Azure response structure
-        mock_field = Mock()
-        mock_field.content = "08/07/2025"
-
-        mock_invoice_id = Mock()
-        mock_invoice_id.content = "02/021163"
-
-        mock_total = Mock()
-        mock_total.value_currency = Mock()
-        mock_total.value_currency.amount = 914.0
-        mock_total.value_currency.currency_code = "ILS"
-
-        mock_vendor = Mock()
-        mock_vendor.content = "Vendor Mock Name"
+        mock_field = Content("08/07/2025")
+        mock_invoice_id = Content("02/021163")
+        mock_total = ValueCurrency(914.0, "ILS")
+        mock_vendor = Content("Vendor Mock Name")
+        mock_address = Content("123 Test St")
 
         mock_fields = {
             "InvoiceDate": mock_field,
             "InvoiceId": mock_invoice_id,
             "InvoiceTotal": mock_total,
             "VendorName": mock_vendor,
+            "VendorAddressRecipient": mock_address,
         }
 
         mock_document = Mock()
@@ -43,22 +39,23 @@ class TestInvoiceData:
         mock_result = Mock()
         mock_result.documents = [mock_document]
 
-        # Test the method
-        result = InvoiceData.from_azure_response(mock_result)
+        # Test the function
+        result = from_azure_response(mock_result)
 
         assert result is not None
-        assert result.date == "08/07/2025"
-        assert result.invoice_suffix == "1163"  # Last 4 digits of 02/021163
-        assert result.price == "914.0"
-        assert result.currency == "ILS"
-        assert result.company == "Vendor Mock Name"
+        assert result.InvoiceDate.content == "08/07/2025"
+        assert result.InvoiceId.content == "02/021163"
+        assert result.InvoiceTotal.amount == 914.0
+        assert result.InvoiceTotal.currencyCode == "ILS"
+        assert result.VendorName.content == "Vendor Mock Name"
+        assert result.VendorAddressRecipient.content == "123 Test St"
 
     def test_from_azure_response_no_documents(self):
         """Test handling when no documents in response."""
         mock_result = Mock()
         mock_result.documents = []
 
-        result = InvoiceData.from_azure_response(mock_result)
+        result = from_azure_response(mock_result)
         assert result is None
 
     def test_from_azure_response_missing_fields(self):
@@ -71,37 +68,32 @@ class TestInvoiceData:
         mock_result = Mock()
         mock_result.documents = [mock_document]
 
-        result = InvoiceData.from_azure_response(mock_result)
+        result = from_azure_response(mock_result)
 
         assert result is not None
-        assert result.date == "Not found"
-        assert result.invoice_suffix == "Not found"
-        assert result.price == "Not found"
-        assert result.currency == "Unknown"
-        assert result.company == "Not found"
+        assert result.InvoiceDate.content == ""
+        assert result.InvoiceId.content == ""
+        assert result.InvoiceTotal.amount == 0
+        assert result.InvoiceTotal.currencyCode == ""
+        assert result.VendorName.content == ""
+        assert result.VendorAddressRecipient.content == ""
 
-    def test_format_price(self):
-        """Test price formatting."""
-        invoice_data = InvoiceData(date="08/07/2025", invoice_suffix="1163", price="914.0", currency="ILS", company="Test Company")
-
-        assert invoice_data.format_price() == "914.0 ILS"
-
-        # Test with "Not found" price
-        invoice_data_not_found = InvoiceData(
-            date="08/07/2025", invoice_suffix="1163", price="Not found", currency="ILS", company="Test Company"
+    def test_invoice_data_creation(self):
+        """Test InvoiceData creation with new structure."""
+        invoice_data = InvoiceData(
+            InvoiceDate=Content("08/07/2025"),
+            InvoiceId=Content("02/021163"),
+            InvoiceTotal=ValueCurrency(914.0, "ILS"),
+            VendorName=Content("Test Company"),
+            VendorAddressRecipient=Content("123 Test St"),
         )
 
-        assert invoice_data_not_found.format_price() == "Not found"
-
-    def test_to_dict(self):
-        """Test conversion to dictionary."""
-        invoice_data = InvoiceData(date="08/07/2025", invoice_suffix="1163", price="914.0", currency="ILS", company="Test Company")
-
-        result = invoice_data.to_dict()
-
-        expected = {"date": "08/07/2025", "invoice_suffix": "1163", "price": "914.0 ILS", "company": "Test Company"}
-
-        assert result == expected
+        assert invoice_data.InvoiceDate.content == "08/07/2025"
+        assert invoice_data.InvoiceId.content == "02/021163"
+        assert invoice_data.InvoiceTotal.amount == 914.0
+        assert invoice_data.InvoiceTotal.currencyCode == "ILS"
+        assert invoice_data.VendorName.content == "Test Company"
+        assert invoice_data.VendorAddressRecipient.content == "123 Test St"
 
 
 class TestExtractInvoiceDataAzure:
@@ -114,9 +106,9 @@ class TestExtractInvoiceDataAzure:
             "AZURE_DOCUMENT_INTELLIGENCE_API_KEY": "test-api-key",
         },
     )
-    @patch("extractors.invoice_extractor.DocumentIntelligenceClient")
+    @patch("src.extractors.invoice_extractor.DocumentIntelligenceClient")
     @patch("builtins.open", create=True)
-    @patch("extractors.invoice_extractor.Path")
+    @patch("src.extractors.invoice_extractor.Path")
     def test_extract_success(self, mock_path, mock_open, mock_client_class):
         """Test successful invoice extraction."""
         # Setup mocks
@@ -131,25 +123,18 @@ class TestExtractInvoiceDataAzure:
         mock_client.begin_analyze_document.return_value = mock_poller
 
         # Mock successful Azure response
-        mock_field = Mock()
-        mock_field.content = "08/07/2025"
-
-        mock_invoice_id = Mock()
-        mock_invoice_id.content = "02/021163"
-
-        mock_total = Mock()
-        mock_total.value_currency = Mock()
-        mock_total.value_currency.amount = 914.0
-        mock_total.value_currency.currency_code = "ILS"
-
-        mock_vendor = Mock()
-        mock_vendor.content = "Test Company"
+        mock_field = Content("08/07/2025")
+        mock_invoice_id = Content("02/021163")
+        mock_total = ValueCurrency(914.0, "ILS")
+        mock_vendor = Content("Test Company")
+        mock_address = Content("123 Test St")
 
         mock_fields = {
             "InvoiceDate": mock_field,
             "InvoiceId": mock_invoice_id,
             "InvoiceTotal": mock_total,
             "VendorName": mock_vendor,
+            "VendorAddressRecipient": mock_address,
         }
 
         mock_document = Mock()
@@ -163,11 +148,12 @@ class TestExtractInvoiceDataAzure:
         result = extract_invoice_data_azure("test.pdf")
 
         assert result is not None
-        assert result.date == "08/07/2025"
-        assert result.invoice_suffix == "1163"
-        assert result.price == "914.0"
-        assert result.currency == "ILS"
-        assert result.company == "Test Company"
+        assert result.InvoiceDate.content == "08/07/2025"
+        assert result.InvoiceId.content == "02/021163"
+        assert result.InvoiceTotal.amount == 914.0
+        assert result.InvoiceTotal.currencyCode == "ILS"
+        assert result.VendorName.content == "Test Company"
+        assert result.VendorAddressRecipient.content == "123 Test St"
 
     def test_missing_credentials(self):
         """Test handling of missing credentials."""
@@ -182,7 +168,7 @@ class TestExtractInvoiceDataAzure:
             "AZURE_DOCUMENT_INTELLIGENCE_API_KEY": "test-api-key",
         },
     )
-    @patch("extractors.invoice_extractor.DocumentIntelligenceClient")
+    @patch("src.extractors.invoice_extractor.DocumentIntelligenceClient")
     @patch("builtins.open", create=True)
     def test_azure_exception(self, mock_open, mock_client_class):
         """Test handling of Azure client exceptions."""

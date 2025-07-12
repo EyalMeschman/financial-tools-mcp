@@ -5,7 +5,6 @@ Extracts: Date (DD/MM/YYYY), Invoice Suffix (last 4 digits), Price (ILS/USD), Co
 """
 
 import os
-import re
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime
@@ -13,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 import requests
-from azure.ai.documentintelligence import DocumentIntelligenceClient
+from azure.ai.documentintelligence import AnalyzeDocumentLROPoller, DocumentIntelligenceClient
 from azure.core.credentials import AzureKeyCredential
 from dotenv import load_dotenv
 
@@ -22,67 +21,46 @@ load_dotenv()
 
 @dataclass
 class InvoiceData:
-    """Dataclass for extracted invoice information."""
+    InvoiceDate: "Content"
+    InvoiceId: "Content"
+    InvoiceTotal: "ValueCurrency"
+    VendorName: "Content"
+    VendorAddressRecipient: "Content"
 
-    date: str
-    invoice_suffix: str
-    price: str
-    currency: str
-    company: str
 
-    @classmethod
-    def from_azure_response(cls, azure_result) -> Optional["InvoiceData"]:
-        """Create InvoiceData from Azure Document Intelligence response."""
-        if not azure_result.documents:
-            return None
+@dataclass
+class Content:
+    content: str
 
-        invoice = azure_result.documents[0]
-        fields = invoice.fields
 
-        # Extract date
-        invoice_date = fields.get("InvoiceDate")
-        date = invoice_date.content if invoice_date and invoice_date.content else "Not found"
+@dataclass
+class ValueCurrency:
+    amount: float
+    currencyCode: str
 
-        # Extract invoice ID suffix (last 4 digits)
-        invoice_id = fields.get("InvoiceId")
-        if invoice_id and invoice_id.content:
-            digits = re.findall(r"\d", str(invoice_id.content))
-            invoice_suffix = "".join(digits[-4:]) if len(digits) >= 4 else "".join(digits)
-        else:
-            invoice_suffix = "Not found"
 
-        # Extract total amount and currency from valueCurrency structure
-        invoice_total = fields.get("InvoiceTotal")
-        if invoice_total and hasattr(invoice_total, "value_currency") and invoice_total.value_currency:
-            amount = invoice_total.value_currency.amount
-            currency_code = invoice_total.value_currency.currency_code or "Unknown"
-            price = str(amount)
-            currency = currency_code
-        else:
-            price = "Not found"
-            currency = "Unknown"
+def from_azure_response(azure_result) -> Optional[InvoiceData]:
+    """Create InvoiceData from Azure Document Intelligence response."""
+    if not azure_result.documents:
+        return None
 
-        # Extract vendor/company name
-        vendor_name = fields.get("VendorName")
-        vendor_address_recipient = fields.get("VendorAddressRecipient")
+    invoice = azure_result.documents[0]
+    fields: dict = invoice.fields
 
-        if vendor_name and vendor_name.content:
-            company_name = str(vendor_name.content).replace("\n", " ").strip()
-            company = company_name
-        elif vendor_address_recipient and vendor_address_recipient.content:
-            company = str(vendor_address_recipient.content)
-        else:
-            company = "Not found"
+    # Extract content from Azure field objects
+    invoice_date: Content = fields.get("InvoiceDate", Content(""))
+    invoice_id: Content = fields.get("InvoiceId", Content(""))
+    invoice_total: ValueCurrency = fields.get("InvoiceTotal", ValueCurrency(0, ""))
+    vendor_name: Content = fields.get("VendorName", Content(""))
+    vendor_address: Content = fields.get("VendorAddressRecipient", Content(""))
 
-        return cls(date=date, invoice_suffix=invoice_suffix, price=price, currency=currency, company=company)
-
-    def format_price(self) -> str:
-        """Format price with currency."""
-        return f"{self.price} {self.currency}" if self.price != "Not found" else "Not found"
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary for backward compatibility."""
-        return {"date": self.date, "invoice_suffix": self.invoice_suffix, "price": self.format_price(), "company": self.company}
+    return InvoiceData(
+        InvoiceDate=invoice_date,
+        InvoiceId=invoice_id,
+        InvoiceTotal=invoice_total,
+        VendorName=vendor_name,
+        VendorAddressRecipient=vendor_address,
+    )
 
 
 def extract_invoice_data_azure(pdf_path: str) -> Optional[InvoiceData]:
@@ -110,12 +88,12 @@ def extract_invoice_data_azure(pdf_path: str) -> Optional[InvoiceData]:
         print(f"Processing {pdf_path} with Azure Document Intelligence...")
 
         # Analyze document using prebuilt invoice model
-        poller = client.begin_analyze_document("prebuilt-invoice", pdf_data, content_type="application/pdf")
+        poller: AnalyzeDocumentLROPoller = client.begin_analyze_document("prebuilt-invoice", pdf_data, content_type="application/pdf")
 
         result = poller.result()
 
         # Create InvoiceData from Azure response
-        invoice_data = InvoiceData.from_azure_response(result)
+        invoice_data = from_azure_response(result)
 
         if invoice_data:
             return invoice_data
@@ -228,10 +206,10 @@ def main():
     if data:
         print("Extracted Invoice Data:")
         print("-" * 30)
-        print(f"Date (DD/MM/YYYY): {data.date}")
-        print(f"Invoice Suffix (last 4 digits): {data.invoice_suffix}")
-        print(f"Price: {data.price}")
-        print(f"Company/Vendor name: {data.company}")
+        print(f"Date (DD/MM/YYYY): {data.InvoiceDate.content}")
+        print(f"Invoice Suffix (last 4 digits): {data.InvoiceId.content[-4:]}")
+        print(f"Price: {data.InvoiceTotal.amount} {data.InvoiceTotal.currencyCode}")
+        print(f"Company/Vendor name: {data.VendorName.content}")
     else:
         print("Failed to extract invoice data")
 

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import json
-import os
 from dataclasses import asdict, dataclass
 
 import requests
 from dateutil import parser as date_parser
 from mcp.server.fastmcp import FastMCP
-
-CACHE_PATH = os.path.expanduser("~/.cache/exchange_rate_cache.json")
+from requests.exceptions import JSONDecodeError
 
 # Create FastMCP instance
 mcp = FastMCP("exchange-rate-mcp")
@@ -22,28 +19,6 @@ class ExchangeRate:
     base: str
     date: str
     rates: dict[str, float]
-
-
-def _load_cache() -> dict:
-    """Load the exchange rate cache from disk."""
-    if not os.path.exists(CACHE_PATH):
-        return {}
-
-    try:
-        with open(CACHE_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return {}
-
-
-def _save_cache(cache: dict) -> None:
-    """Save the exchange rate cache to disk."""
-    try:
-        with open(CACHE_PATH, "w", encoding="utf-8") as f:
-            json.dump(cache, f, indent=2)
-    except IOError:
-        # Silently ignore write errors - cache is a performance optimization
-        pass
 
 
 def _normalize_date(date_str: str) -> str:
@@ -87,14 +62,6 @@ def get_exchange_rate(date: str, from_currency: str = "USD", to_currency: str = 
     from_currency = from_currency.upper()
     to_currency = to_currency.upper()
 
-    # Create a cache key that includes both currencies
-    cache_key = f"{norm_date}_{from_currency}_{to_currency}"
-
-    # Check cache first
-    cache = _load_cache()
-    if cache_key in cache:
-        return cache[cache_key]
-
     # Make API request
     url = f"https://api.frankfurter.app/{norm_date}?from={from_currency}&to={to_currency}"
 
@@ -113,16 +80,12 @@ def get_exchange_rate(date: str, from_currency: str = "USD", to_currency: str = 
 
     try:
         data = resp.json()
-    except json.JSONDecodeError as e:
+    except JSONDecodeError as e:
         raise Exception(f"[get_exchange_rate] Invalid JSON response for date {norm_date}") from e
 
     # Create ExchangeRate object and convert to dict
     exchange_rate = ExchangeRate(**data)
     result = asdict(exchange_rate)
-
-    # Cache the result with the new key
-    cache[cache_key] = result
-    _save_cache(cache)
 
     return result
 

@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
-    # Install Node.js and npm
+# Install Node.js and npm
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs
 
@@ -26,12 +26,10 @@ COPY src/ ./src/
 COPY server.py ./
 
 # Install the project with dev dependencies using uv
-RUN uv pip install --system -e ".[dev]"
+RUN uv pip install --system -e .[dev]
 
-# Create cache directory with proper permissions
-RUN mkdir -p /home/vscode/.cache && \
-    touch /home/vscode/.cache/exchange_rate_cache.json && \
-    chown -R vscode:vscode /home/vscode
+# Ensure proper ownership of home directory
+RUN chown -R vscode:vscode /home/vscode
 
 # Copy remaining project files
 COPY tests/ ./tests/

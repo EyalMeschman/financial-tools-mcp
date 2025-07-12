@@ -9,7 +9,6 @@ A comprehensive financial tools suite featuring an MCP server for exchange rates
 ### 1. Exchange Rate MCP Server
 - **Multi-Currency Support**: `get_exchange_rate(date: str, from_currency: str = "USD", to_currency: str = "ILS") → dict`
 - **Flexible Date Input**: Accepts dates in various formats (YYYY-MM-DD, MM/DD/YYYY, "July 10, 2025", etc.)
-- **Persistent Caching**: Stores exchange rates with currency-specific keys in `~/.cache/exchange_rate_cache.json`
 - **Reliable Data Source**: Uses the Frankfurter API for historical exchange rates
 - **Error Handling**: Proper exception handling for invalid dates, network errors, and API failures
 
@@ -121,12 +120,6 @@ tests/
 ├── test_get_exchange_rate.py      # Exchange rate tests
 └── test_azure_invoice_extractor.py # Invoice extractor tests
 ```
-
-## Cache & Data Storage
-
-- **Exchange Rate Cache**: Stored in `~/.cache/exchange_rate_cache.json` with currency-specific keys (e.g., `"2025-07-10_USD_ILS"`)
-- **Cache Benefits**: Improves performance, reduces API calls, persists across restarts
-- **Invoice Processing**: No caching - each document processed fresh via Azure API
 
 ## Error Handling
 
