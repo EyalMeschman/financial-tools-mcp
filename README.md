@@ -1,7 +1,5 @@
 # Financial Tools MCP
 
-[![CI](https://github.com/yourusername/financial-tools-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/financial-tools-mcp/actions/workflows/ci.yml)
-
 A comprehensive financial tools suite featuring an MCP server for exchange rates and a standalone invoice data extractor.
 
 ## Components
