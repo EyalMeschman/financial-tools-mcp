@@ -106,8 +106,7 @@ python src/extractors/invoice_extractor.py  # Processes payment.pdf in current d
 ```
 src/
 ├── mcp_tools/           # MCP server components
-│   ├── exchange_rate.py # Exchange rate tool using FastMCP framework
-│   └── server.py        # MCP server entry point
+│   └── exchange_rate.py # Exchange rate tool using FastMCP framework
 └── extractors/          # Data extraction utilities
     └── invoice_extractor.py # Azure Document Intelligence integration
 

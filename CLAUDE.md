@@ -31,7 +31,7 @@ This is a financial tools suite with two main components:
 **Core Components:**
 - `src/mcp_tools/exchange_rate.py`: Exchange rate tool using FastMCP framework
 - `src/extractors/invoice_extractor.py`: Azure Document Intelligence integration
-- `server.py`: MCP server entry point (also available at `src/mcp_tools/server.py`)
+- `server.py`: MCP server entry point
 - `ExchangeRate` and `InvoiceData` dataclasses: Structured response formats
 
 **Key Functions:**
