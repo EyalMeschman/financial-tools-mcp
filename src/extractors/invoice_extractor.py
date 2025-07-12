@@ -21,22 +21,28 @@ load_dotenv()
 
 @dataclass
 class InvoiceData:
-    InvoiceDate: "Content"
-    InvoiceId: "Content"
-    InvoiceTotal: "ValueCurrency"
-    VendorName: "Content"
-    VendorAddressRecipient: "Content"
+    InvoiceDate: "DefaultContent"
+    InvoiceId: "DefaultContent"
+    InvoiceTotal: "InvoiceTotal"
+    VendorName: "DefaultContent"
+    VendorAddressRecipient: "DefaultContent"
 
 
 @dataclass
-class Content:
+class DefaultContent:
+    content: str
+
+
+@dataclass
+class InvoiceTotal:
+    value_currency: "ValueCurrency"
     content: str
 
 
 @dataclass
 class ValueCurrency:
     amount: float
-    currencyCode: str
+    currency_code: str
 
 
 def from_azure_response(azure_result) -> Optional[InvoiceData]:
@@ -48,11 +54,13 @@ def from_azure_response(azure_result) -> Optional[InvoiceData]:
     fields: dict = invoice.fields
 
     # Extract content from Azure field objects
-    invoice_date: Content = fields.get("InvoiceDate", Content(""))
-    invoice_id: Content = fields.get("InvoiceId", Content(""))
-    invoice_total: ValueCurrency = fields.get("InvoiceTotal", ValueCurrency(0, ""))
-    vendor_name: Content = fields.get("VendorName", Content(""))
-    vendor_address: Content = fields.get("VendorAddressRecipient", Content(""))
+    invoice_date: DefaultContent = fields.get("InvoiceDate", DefaultContent(content=""))
+    invoice_id: DefaultContent = fields.get("InvoiceId", DefaultContent(content=""))
+    invoice_total: InvoiceTotal = fields.get(
+        "InvoiceTotal", InvoiceTotal(value_currency=ValueCurrency(amount=0, currency_code=""), content="")
+    )
+    vendor_name: DefaultContent = fields.get("VendorName", DefaultContent(content=""))
+    vendor_address: DefaultContent = fields.get("VendorAddressRecipient", DefaultContent(content=""))
 
     return InvoiceData(
         InvoiceDate=invoice_date,
@@ -201,15 +209,15 @@ def main():
     print()
 
     # Extract data
-    data = extract_invoice_data_azure(pdf_path)
+    invoiceData = extract_invoice_data_azure(pdf_path)
 
-    if data:
+    if invoiceData:
         print("Extracted Invoice Data:")
         print("-" * 30)
-        print(f"Date (DD/MM/YYYY): {data.InvoiceDate.content}")
-        print(f"Invoice Suffix (last 4 digits): {data.InvoiceId.content[-4:]}")
-        print(f"Price: {data.InvoiceTotal.amount} {data.InvoiceTotal.currencyCode}")
-        print(f"Company/Vendor name: {data.VendorName.content}")
+        print(f"Date (DD/MM/YYYY): {invoiceData.InvoiceDate.content}")
+        print(f"Invoice Suffix (last 4 digits): {invoiceData.InvoiceId.content[-4:]}")
+        print(f"Price: {invoiceData.InvoiceTotal.value_currency.amount} {invoiceData.InvoiceTotal.value_currency.currency_code}")
+        print(f"Company/Vendor name: {invoiceData.VendorName.content or invoiceData.VendorAddressRecipient.content}")
     else:
         print("Failed to extract invoice data")
 

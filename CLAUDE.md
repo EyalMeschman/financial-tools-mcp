@@ -46,8 +46,9 @@ This is a financial tools suite with two main components:
 
 **Invoice Extractor Data Models:**
 - `InvoiceData`: Main dataclass with `InvoiceDate`, `InvoiceId`, `InvoiceTotal`, `VendorName`, `VendorAddressRecipient` fields
-- `Content`: Simple wrapper for text content with `.content` attribute
-- `ValueCurrency`: Wrapper for monetary values with `.amount` and `.currencyCode` attributes
+- `DefaultContent`: Simple wrapper for text content with `.content` attribute
+- `InvoiceTotal`: Wrapper for invoice total with `.value_currency` (ValueCurrency object) and `.content` attributes
+- `ValueCurrency`: Wrapper for monetary values with `.amount` and `.currency_code` attributes
 - `from_azure_response(azure_result) -> Optional[InvoiceData]`: Converts Azure API response to structured data
 
 **Invoice Extractor Setup:**

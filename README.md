@@ -82,7 +82,7 @@ AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_ID=/subscriptions/.../resourceGroups/.../pr
 
 **Use as Python Module:**
 ```python
-from extractors.invoice_extractor import extract_invoice_data_azure, check_usage_quota
+from src.extractors.invoice_extractor import extract_invoice_data_azure, check_usage_quota
 
 # Check current usage (optional)
 usage = check_usage_quota()
@@ -92,13 +92,10 @@ if usage:
 # Extract invoice data
 invoice_data = extract_invoice_data_azure("path/to/invoice.pdf")
 if invoice_data:
-    print(f"Date: {invoice_data.date}")
-    print(f"Invoice Suffix: {invoice_data.invoice_suffix}")
-    print(f"Price: {invoice_data.format_price()}")
-    print(f"Company: {invoice_data.company}")
-    
-    # Convert to dictionary
-    data_dict = invoice_data.to_dict()
+    print(f"Date: {invoice_data.InvoiceDate.content}")
+    print(f"Invoice ID: {invoice_data.InvoiceId.content}")
+    print(f"Price: {invoice_data.InvoiceTotal.value_currency.amount} {invoice_data.InvoiceTotal.value_currency.currency_code}")
+    print(f"Company: {invoice_data.VendorName.content or invoice_data.VendorAddressRecipient.content}")
 ```
 
 **Direct Execution:**
@@ -120,6 +117,17 @@ tests/
 ├── test_get_exchange_rate.py      # Exchange rate tests
 └── test_azure_invoice_extractor.py # Invoice extractor tests
 ```
+
+## Data Models
+
+**Exchange Rate Response:**
+- Returns dictionary with `amount`, `base`, `date`, and `rates` fields
+
+**Invoice Data Structure:**
+- `InvoiceData`: Main dataclass containing all extracted invoice fields
+- `DefaultContent`: Text fields with `.content` attribute (InvoiceDate, InvoiceId, VendorName, VendorAddressRecipient)
+- `InvoiceTotal`: Invoice total with `.value_currency` (ValueCurrency object) and `.content` attributes
+- `ValueCurrency`: Monetary values with `.amount` (float) and `.currency_code` (string) attributes
 
 ## Error Handling
 

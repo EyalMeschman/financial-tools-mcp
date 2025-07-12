@@ -4,8 +4,9 @@ import os
 from unittest.mock import Mock, patch
 
 from src.extractors.invoice_extractor import (
-    Content,
+    DefaultContent,
     InvoiceData,
+    InvoiceTotal,
     ValueCurrency,
     check_usage_quota,
     extract_invoice_data_azure,
@@ -19,11 +20,11 @@ class TestInvoiceData:
     def test_from_azure_response_success(self):
         """Test successful creation from Azure response."""
         # Mock Azure response structure
-        mock_field = Content("08/07/2025")
-        mock_invoice_id = Content("02/021163")
-        mock_total = ValueCurrency(914.0, "ILS")
-        mock_vendor = Content("Vendor Mock Name")
-        mock_address = Content("123 Test St")
+        mock_field = DefaultContent("08/07/2025")
+        mock_invoice_id = DefaultContent("02/021163")
+        mock_total = InvoiceTotal(value_currency=ValueCurrency(amount=914.0, currency_code="ILS"), content="")
+        mock_vendor = DefaultContent("Vendor Mock Name")
+        mock_address = DefaultContent("123 Test St")
 
         mock_fields = {
             "InvoiceDate": mock_field,
@@ -45,8 +46,8 @@ class TestInvoiceData:
         assert result is not None
         assert result.InvoiceDate.content == "08/07/2025"
         assert result.InvoiceId.content == "02/021163"
-        assert result.InvoiceTotal.amount == 914.0
-        assert result.InvoiceTotal.currencyCode == "ILS"
+        assert result.InvoiceTotal.value_currency.amount == 914.0
+        assert result.InvoiceTotal.value_currency.currency_code == "ILS"
         assert result.VendorName.content == "Vendor Mock Name"
         assert result.VendorAddressRecipient.content == "123 Test St"
 
@@ -73,25 +74,25 @@ class TestInvoiceData:
         assert result is not None
         assert result.InvoiceDate.content == ""
         assert result.InvoiceId.content == ""
-        assert result.InvoiceTotal.amount == 0
-        assert result.InvoiceTotal.currencyCode == ""
+        assert result.InvoiceTotal.value_currency.amount == 0
+        assert result.InvoiceTotal.value_currency.currency_code == ""
         assert result.VendorName.content == ""
         assert result.VendorAddressRecipient.content == ""
 
     def test_invoice_data_creation(self):
         """Test InvoiceData creation with new structure."""
         invoice_data = InvoiceData(
-            InvoiceDate=Content("08/07/2025"),
-            InvoiceId=Content("02/021163"),
-            InvoiceTotal=ValueCurrency(914.0, "ILS"),
-            VendorName=Content("Test Company"),
-            VendorAddressRecipient=Content("123 Test St"),
+            InvoiceDate=DefaultContent("08/07/2025"),
+            InvoiceId=DefaultContent("02/021163"),
+            InvoiceTotal=InvoiceTotal(value_currency=ValueCurrency(amount=914.0, currency_code="ILS"), content=""),
+            VendorName=DefaultContent("Test Company"),
+            VendorAddressRecipient=DefaultContent("123 Test St"),
         )
 
         assert invoice_data.InvoiceDate.content == "08/07/2025"
         assert invoice_data.InvoiceId.content == "02/021163"
-        assert invoice_data.InvoiceTotal.amount == 914.0
-        assert invoice_data.InvoiceTotal.currencyCode == "ILS"
+        assert invoice_data.InvoiceTotal.value_currency.amount == 914.0
+        assert invoice_data.InvoiceTotal.value_currency.currency_code == "ILS"
         assert invoice_data.VendorName.content == "Test Company"
         assert invoice_data.VendorAddressRecipient.content == "123 Test St"
 
@@ -123,11 +124,11 @@ class TestExtractInvoiceDataAzure:
         mock_client.begin_analyze_document.return_value = mock_poller
 
         # Mock successful Azure response
-        mock_field = Content("08/07/2025")
-        mock_invoice_id = Content("02/021163")
-        mock_total = ValueCurrency(914.0, "ILS")
-        mock_vendor = Content("Test Company")
-        mock_address = Content("123 Test St")
+        mock_field = DefaultContent("08/07/2025")
+        mock_invoice_id = DefaultContent("02/021163")
+        mock_total = InvoiceTotal(value_currency=ValueCurrency(amount=914.0, currency_code="ILS"), content="")
+        mock_vendor = DefaultContent("Test Company")
+        mock_address = DefaultContent("123 Test St")
 
         mock_fields = {
             "InvoiceDate": mock_field,
@@ -150,8 +151,8 @@ class TestExtractInvoiceDataAzure:
         assert result is not None
         assert result.InvoiceDate.content == "08/07/2025"
         assert result.InvoiceId.content == "02/021163"
-        assert result.InvoiceTotal.amount == 914.0
-        assert result.InvoiceTotal.currencyCode == "ILS"
+        assert result.InvoiceTotal.value_currency.amount == 914.0
+        assert result.InvoiceTotal.value_currency.currency_code == "ILS"
         assert result.VendorName.content == "Test Company"
         assert result.VendorAddressRecipient.content == "123 Test St"
 
