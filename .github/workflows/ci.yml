@@ -7,33 +7,74 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  test:
+  backend-tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.12"]
-
+    defaults:
+      run:
+        working-directory: ./backend
+    
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.11"
+    
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+    
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: backend/.venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
     
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[dev]"
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --no-interaction --no-root
     
-    - name: Check code formatting with Black
-      run: |
-        black --check .
+    - name: Install project
+      run: poetry install --no-interaction
     
-    - name: Lint with Ruff
-      run: |
-        ruff check .
+    - name: Run tests with pytest
+      run: poetry run pytest
+    
+    - name: Run Ruff linting
+      run: poetry run ruff check .
+    
+    - name: Run Black formatting check
+      run: poetry run black --check .
+    
+    - name: Run isort import sorting check
+      run: poetry run isort --check-only .
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run ESLint
+      run: npm run lint
     
     - name: Run tests
-      run: |
-        pytest tests/ -v
+      run: npm test -- --coverage --watchAll=false
