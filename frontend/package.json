@@ -9,7 +9,7 @@
     "lint": "eslint --ext ts,tsx src",
     "lint:fix": "eslint --ext ts,tsx src --fix",
     "preview": "vite preview",
-    "test": "jest",
+    "test": "jest --coverage --maxWorkers=2",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
@@ -33,6 +33,7 @@
     "@vitejs/plugin-react": "^4.1.0",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.53.0",
+    "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
     "identity-obj-proxy": "^3.0.0",
