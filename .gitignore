@@ -8,6 +8,10 @@
 .DS_Store
 ._*
 
+# Python cache files
+__pycache__/
+*.py[cod]
+
 # Project specific
 uploads/
 exports/
