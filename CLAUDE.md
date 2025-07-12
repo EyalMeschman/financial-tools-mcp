@@ -23,10 +23,20 @@ python server.py  # Start the MCP server
 
 ## Architecture
 
-This is a financial tools suite with two main components:
+This is a financial tools suite currently with two main components, plus planned expansion into a web application:
 
+### Current Implementation:
 1. **MCP Exchange Rate Tool**: Currency conversion using the Frankfurter API
 2. **Invoice Data Extractor**: PDF invoice processing using Azure Document Intelligence
+
+### Planned Features (Invoice Converter Web App):
+3. **Web Application**: React + FastAPI app for batch invoice processing with real-time progress
+   - Upload up to 100 invoices (PDF/JPEG/PNG ≤ 1MB each)  
+   - LangGraph pipeline orchestration
+   - Currency conversion to user-chosen target currency
+   - Excel report generation with styled workbook
+   - Server-Sent Events (SSE) for real-time progress tracking
+   - SQLite database for job/file tracking
 
 **Core Components:**
 - `src/mcp_tools/exchange_rate.py`: Exchange rate tool using FastMCP framework
@@ -65,3 +75,38 @@ This is a financial tools suite with two main components:
 **Error Handling:**
 - `ValueError` for invalid date formats and missing Azure credentials
 - `Exception` for network/API failures with detailed messages
+
+## Planned Development (Invoice Converter Web App)
+
+**Technology Stack:**
+- **Frontend**: React + Vite, Tailwind CSS, Headless UI, React Dropzone
+- **Backend**: FastAPI + Uvicorn, LangGraph for orchestration
+- **Database**: SQLite with SQLAlchemy and Alembic migrations
+- **Processing**: Batch uploads with SSE progress streaming
+- **Export**: openpyxl for styled Excel workbooks
+
+**Development Phases (from todo.md):**
+- **P-0**: Repository setup and CI baseline
+- **P-1**: Backend scaffold (FastAPI + SQLite)
+- **P-2**: Frontend scaffold (React + Tailwind)
+- **P-3**: Job lifecycle and SSE infrastructure
+- **P-4**: LangGraph pipeline skeleton
+- **P-5**: Azure Document Intelligence integration
+- **P-6**: Currency conversion flow
+- **P-7**: Excel report generation
+- **P-8**: Full pipeline integration
+- **P-9**: Frontend UX completion
+- **P-10**: Docker packaging
+- **P-11**: Testing and documentation
+
+**Key Features:**
+- Multi-file upload with drag-and-drop interface
+- Real-time progress tracking via Server-Sent Events
+- Currency conversion with 3-failure circuit breaker
+- Styled Excel reports with invoice data
+- Docker containerization for production deployment
+
+**Workflow Reference:**
+- See `todo.md` for detailed task breakdown
+- See `prompt_plan.md` for step-by-step implementation prompts
+- See `spec.md` for complete technical specification
