@@ -39,8 +39,8 @@
 	"runArgs": [
 		"--network=host"
 	],
+	"postCreateCommand": "pip install -e .[dev]",
 	"mounts": [
-		"source=exchange-rate-cache,target=/home/vscode/.cache,type=volume",
 		"source=npm-global,target=/home/vscode/.npm-global,type=volume"
 	],
 	"remoteUser": "vscode",

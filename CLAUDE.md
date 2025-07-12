@@ -33,23 +33,28 @@ This is a financial tools suite with two main components:
 - `src/extractors/invoice_extractor.py`: Azure Document Intelligence integration
 - `server.py`: MCP server entry point (also available at `src/mcp_tools/server.py`)
 - `ExchangeRate` and `InvoiceData` dataclasses: Structured response formats
-- Persistent caching in `~/.cache/exchange_rate_cache.json` with currency-specific keys
 
 **Key Functions:**
 - `get_exchange_rate(date: str, from_currency: str = "USD", to_currency: str = "ILS") -> dict`
-- `extract_invoice_data(pdf_path: str) -> dict`
+- `extract_invoice_data_azure(pdf_path: str) -> Optional[InvoiceData]`
 
 **Exchange Rate Data Flow:**
 1. Date normalization using `dateutil.parser`
-2. Cache lookup with key format: `{date}_{from_currency}_{to_currency}`
-3. Frankfurter API call if not cached
-4. Response validation and caching
-5. Return structured dictionary
+2. Frankfurter API call.
+3. Response validation
+4. Return structured dictionary
+
+**Invoice Extractor Data Models:**
+- `InvoiceData`: Main dataclass with `InvoiceDate`, `InvoiceId`, `InvoiceTotal`, `VendorName`, `VendorAddressRecipient` fields
+- `DefaultContent`: Simple wrapper for text content with `.content` attribute
+- `InvoiceTotal`: Wrapper for invoice total with `.value_currency` (ValueCurrency object) and `.content` attributes
+- `ValueCurrency`: Wrapper for monetary values with `.amount` and `.currency_code` attributes
+- `from_azure_response(azure_result) -> Optional[InvoiceData]`: Converts Azure API response to structured data
 
 **Invoice Extractor Setup:**
 - Requires Azure Document Intelligence credentials in `.env`
-- Environment variables: `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT`, `AZURE_DOCUMENT_INTELLIGENCE_KEY`
-- Optional: `AZURE_RESOURCE_ID` for usage quota monitoring
+- Environment variables: `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT`, `AZURE_DOCUMENT_INTELLIGENCE_API_KEY`
+- Optional: `AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_ID` for usage quota monitoring
 
 **Testing:**
 - Exchange rate tests in `tests/test_get_exchange_rate.py` using `requests-mock`
@@ -60,4 +65,3 @@ This is a financial tools suite with two main components:
 **Error Handling:**
 - `ValueError` for invalid date formats and missing Azure credentials
 - `Exception` for network/API failures with detailed messages
-- Graceful cache write failures (performance optimization)
