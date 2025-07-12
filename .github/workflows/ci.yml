@@ -52,7 +52,7 @@ jobs:
         run: poetry run isort --check-only .
 
       - name: Upload backend coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
           path: backend/coverage.xml
@@ -83,7 +83,7 @@ jobs:
         run: npm test -- --watchAll=false
 
       - name: Upload frontend coverage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
           path: frontend/coverage/
