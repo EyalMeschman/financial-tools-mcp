@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, Optional
 import pytest
 import requests_mock
 
-from mcp_tools.exchange_rate import _normalize_date, mcp
+from src.proto.mcp_tools.exchange_rate import _normalize_date, mcp
 
 
 def get_exchange_rate_function() -> Optional[Callable[..., Dict[str, Any]]]:
@@ -16,6 +16,7 @@ def get_exchange_rate_function() -> Optional[Callable[..., Dict[str, Any]]]:
     return None
 
 
+@pytest.mark.proto
 class TestGetExchangeRate:
     """Test cases for the get_exchange_rate function."""
 
@@ -80,6 +81,7 @@ class TestGetExchangeRate:
             get_exchange_rate_func("invalid-date-32-13-2025")
 
 
+@pytest.mark.proto
 class TestHelperFunctions:
     """Test cases for helper functions."""
 
