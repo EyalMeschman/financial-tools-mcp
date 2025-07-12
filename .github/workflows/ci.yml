@@ -37,10 +37,10 @@ jobs:
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction
+        run: poetry install --no-interaction --without proto
 
-      - name: Run tests with pytest
-        run: poetry run pytest --cov --cov-report=xml
+      - name: Run tests with pytest (excluding proto)
+        run: poetry run pytest -m "not proto" --cov --cov-report=xml
 
       - name: Run Ruff linting
         run: poetry run ruff check .
@@ -79,8 +79,28 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-      - name: Run tests
-        run: npm test -- --watchAll=false
+      - name: Run tests with coverage
+        run: npm test -- --watchAll=false --coverage
+
+      - name: Check Jest coverage threshold
+        run: |
+          if [ ! -f coverage/lcov.info ]; then
+            echo "Error: Coverage file not found"
+            exit 1
+          fi
+          
+          # Parse coverage from lcov.info and check if >= 80%
+          COVERAGE=$(grep -o "LF:[0-9]*" coverage/lcov.info | cut -d: -f2 | awk '{total+=$1} END {print total}')
+          HIT=$(grep -o "LH:[0-9]*" coverage/lcov.info | cut -d: -f2 | awk '{total+=$1} END {print total}')
+          
+          if [ "$COVERAGE" -gt 0 ]; then
+            PERCENTAGE=$(echo "scale=1; $HIT * 100 / $COVERAGE" | bc -l)
+            echo "Coverage: $PERCENTAGE%"
+            if (( $(echo "$PERCENTAGE < 80" | bc -l) )); then
+              echo "Error: Coverage $PERCENTAGE% is below required 80%"
+              exit 1
+            fi
+          fi
 
       - name: Upload frontend coverage
         uses: actions/upload-artifact@v4

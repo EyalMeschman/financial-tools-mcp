@@ -3,7 +3,9 @@
 import os
 from unittest.mock import Mock, patch
 
-from src.extractors.invoice_extractor import (
+import pytest
+
+from src.proto.extractors.invoice_extractor import (
     DefaultContent,
     InvoiceData,
     InvoiceTotal,
@@ -14,6 +16,7 @@ from src.extractors.invoice_extractor import (
 )
 
 
+@pytest.mark.proto
 class TestInvoiceData:
     """Test cases for the InvoiceData dataclass."""
 
@@ -97,6 +100,7 @@ class TestInvoiceData:
         assert invoice_data.VendorAddressRecipient.content == "123 Test St"
 
 
+@pytest.mark.proto
 class TestExtractInvoiceDataAzure:
     """Test cases for the extract_invoice_data_azure function."""
 
@@ -183,6 +187,7 @@ class TestExtractInvoiceDataAzure:
         assert result is None
 
 
+@pytest.mark.proto
 class TestCheckUsageQuota:
     """Test cases for the check_usage_quota function."""
 
