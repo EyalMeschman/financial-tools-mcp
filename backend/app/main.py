@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
@@ -21,7 +21,7 @@ async def event_generator(job_id: str) -> AsyncGenerator[str, None]:
         }
         yield f"data: {json.dumps(event_data)}\n\n"
         await asyncio.sleep(1)
-    
+
     # Send completion event
     completion_data = {
         "job_id": job_id,

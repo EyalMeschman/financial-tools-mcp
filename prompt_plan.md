@@ -234,7 +234,7 @@ Unit test using httpx.AsyncClient that reads the stream and counts ten events.
 Commit: `feat(api): dummy SSE progress endpoint`.
 ```
 
-### Prompt 8 – sse-frontend-hook
+### Prompt 8 – `sse-frontend-hook`
 
 ```text
 Front-end SSE hook.
