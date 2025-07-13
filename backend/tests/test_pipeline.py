@@ -18,12 +18,12 @@ async def test_pipeline_noop():
         "target_currency": "USD",
         "metadata": {"user_id": "user123", "timestamp": "2025-01-01T00:00:00Z"},
     }
-    
+
     # Get compiled pipeline
     pipeline = get_compiled_pipeline()
-    
+
     # Execute pipeline
     result = await pipeline.ainvoke(sample_input)
-    
+
     # Assert output is identical to input
     assert result == sample_input
