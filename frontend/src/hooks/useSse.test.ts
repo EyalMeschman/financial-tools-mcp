@@ -2,7 +2,17 @@ import { renderHook, act } from '@testing-library/react';
 import { useSse } from './useSse';
 
 // Mock EventSource
-let mockEventSource: any;
+interface MockEventSourceType {
+  url: string;
+  onmessage: ((event: MessageEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  readyState: number;
+  close: jest.Mock;
+  simulateMessage: (data: string) => void;
+  simulateError: () => void;
+}
+
+let mockEventSource: MockEventSourceType;
 
 const createMockEventSource = () => ({
   url: '',
@@ -31,7 +41,7 @@ beforeEach(() => {
   global.EventSource = jest.fn().mockImplementation((url) => {
     mockEventSource.url = url;
     return mockEventSource;
-  }) as any;
+  }) as unknown as typeof EventSource;
 });
 
 afterEach(() => {

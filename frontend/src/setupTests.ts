@@ -6,4 +6,4 @@ global.EventSource = jest.fn().mockImplementation(() => ({
   onerror: null,
   readyState: 1,
   close: jest.fn(),
-})) as any;
+})) as unknown as typeof EventSource;
