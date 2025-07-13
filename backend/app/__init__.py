@@ -1,1 +1,0 @@
-"""Invoice Converter backend application."""
