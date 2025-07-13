@@ -38,12 +38,7 @@ def temp_db_session():
 def test_job_creation(temp_db_session):
     """Test creating and querying a Job."""
     # Create a job
-    job = Job(
-        job_id="test-job-123",
-        status="pending",
-        processed=0,
-        total=5
-    )
+    job = Job(job_id="test-job-123", status="pending", processed=0, total=5)
 
     temp_db_session.add(job)
     temp_db_session.commit()
@@ -63,12 +58,7 @@ def test_job_creation(temp_db_session):
 def test_file_creation(temp_db_session):
     """Test creating and querying a File."""
     # Create a job first
-    job = Job(
-        job_id="test-job-456",
-        status="processing",
-        processed=1,
-        total=3
-    )
+    job = Job(job_id="test-job-456", status="processing", processed=1, total=3)
     temp_db_session.add(job)
     temp_db_session.commit()
 
@@ -78,7 +68,7 @@ def test_file_creation(temp_db_session):
         filename="invoice1.pdf",
         status="completed",
         original_currency="USD",
-        target_currency="EUR"
+        target_currency="EUR",
     )
 
     temp_db_session.add(file)
@@ -99,12 +89,7 @@ def test_file_creation(temp_db_session):
 def test_job_file_relationship(temp_db_session):
     """Test the relationship between Job and File models."""
     # Create a job
-    job = Job(
-        job_id="test-job-789",
-        status="completed",
-        processed=2,
-        total=2
-    )
+    job = Job(job_id="test-job-789", status="completed", processed=2, total=2)
     temp_db_session.add(job)
     temp_db_session.commit()
 
@@ -114,7 +99,7 @@ def test_job_file_relationship(temp_db_session):
         filename="invoice1.pdf",
         status="completed",
         original_currency="USD",
-        target_currency="EUR"
+        target_currency="EUR",
     )
 
     file2 = File(
@@ -123,7 +108,7 @@ def test_job_file_relationship(temp_db_session):
         status="failed",
         original_currency="GBP",
         target_currency="EUR",
-        error_message="Invalid PDF format"
+        error_message="Invalid PDF format",
     )
 
     temp_db_session.add_all([file1, file2])
