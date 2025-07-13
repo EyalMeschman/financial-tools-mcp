@@ -44,7 +44,6 @@ jobs:
 
       - name: Check Python coverage threshold
         run: |
-          cd backend
           COVERAGE=$(poetry run coverage report --show-missing | grep TOTAL | awk '{print $4}' | sed 's/%//')
           echo "Python Coverage: $COVERAGE%"
           if (( $(echo "$COVERAGE < 80" | bc -l) )); then
