@@ -218,15 +218,13 @@ Commit: `feat(frontend): basic dropzone upload stub`.
 
 ### Prompt 7 – `sse-endpoint`
 
-```text
+```json
 Back-end SSE foundation.
 
 **Task**
 1. Add `/progress/{job_id}` endpoint returning `text/event-stream`.
 2. Use `async def event_generator(job_id)` that yields one event per second with:
-   ```json
    {"job_id": "...", "status": "processing", "percentage": 0}
-   ```
    For now, stop after ten events and then send "completed".
 
 3. Include Cache-Control: no-cache header.
@@ -236,7 +234,7 @@ Unit test using httpx.AsyncClient that reads the stream and counts ten events.
 Commit: `feat(api): dummy SSE progress endpoint`.
 ```
 
-### Prompt 8 – sse-frontend-hook
+### Prompt 8 – `sse-frontend-hook`
 
 ```text
 Front-end SSE hook.
