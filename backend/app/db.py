@@ -1,8 +1,10 @@
 """Database session management."""
 
 import os
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
+
 from .models import Base
 
 # Get database URL from environment, default to SQLite
