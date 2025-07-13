@@ -6,24 +6,56 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Development Setup:**
 ```bash
+# MCP Server (uses uv package manager)
 pip install -e ".[dev]"  # Install with dev dependencies
+
+# Backend Web App (uses Poetry)
+cd backend && poetry install  # Install backend dependencies
+cd backend && poetry install --with=proto  # Include prototype dependencies
+
+# Frontend Web App
+cd frontend && npm install  # Install frontend dependencies
 ```
 
 **Code Quality:**
 ```bash
-black .        # Format code (line-length 140)
+black .        # Format code (line-length 120)
 ruff check .   # Lint code
 pytest         # Run all tests
+pytest tests/test_get_exchange_rate.py  # Run specific test file
+pytest tests/test_azure_invoice_extractor.py::TestInvoiceData  # Run specific test class
 ```
 
-**Run MCP Server:**
+**Run Services:**
 ```bash
 python server.py  # Start the MCP server
+
+# Planned web application commands:
+cd backend && poetry run uvicorn app.main:app --reload  # Backend dev server
+cd frontend && npm run dev  # Frontend dev server
 ```
 
 ## Architecture
 
-This is a financial tools suite currently with two main components, plus planned expansion into a web application:
+This is a financial tools suite with a monorepo structure containing current MCP server implementation and planned web application:
+
+### Project Structure:
+```
+/workspaces/financial-tools-mcp/
+├── server.py                    # MCP server entry point
+├── src/proto/                   # Current prototype implementation
+│   ├── mcp_tools/               # MCP tools (exchange rate)
+│   └── extractors/              # Invoice processing (Azure)
+├── tests/                       # Unit tests for prototype components
+├── backend/                     # Planned FastAPI web application
+│   ├── app/                     # FastAPI application code
+│   ├── pyproject.toml           # Poetry configuration
+│   └── tests/                   # Backend unit tests
+└── frontend/                    # Planned React web application
+    ├── src/                     # React components and logic
+    ├── package.json             # npm configuration
+    └── __tests__/               # Frontend unit tests
+```
 
 ### Current Implementation:
 1. **MCP Exchange Rate Tool**: Currency conversion using the Frankfurter API
@@ -39,9 +71,11 @@ This is a financial tools suite currently with two main components, plus planned
    - SQLite database for job/file tracking
 
 **Core Components:**
-- `src/mcp_tools/exchange_rate.py`: Exchange rate tool using FastMCP framework
-- `src/extractors/invoice_extractor.py`: Azure Document Intelligence integration
+- `src/proto/mcp_tools/exchange_rate.py`: Exchange rate tool using FastMCP framework
+- `src/proto/extractors/invoice_extractor.py`: Azure Document Intelligence integration
 - `server.py`: MCP server entry point
+- `backend/`: FastAPI web application (planned)
+- `frontend/`: React web application (planned)
 - `ExchangeRate` and `InvoiceData` dataclasses: Structured response formats
 
 **Key Functions:**
@@ -79,8 +113,9 @@ This is a financial tools suite currently with two main components, plus planned
 ## Planned Development (Invoice Converter Web App)
 
 **Technology Stack:**
-- **Frontend**: React + Vite, Tailwind CSS, Headless UI, React Dropzone
-- **Backend**: FastAPI + Uvicorn, LangGraph for orchestration
+- **Frontend**: React + Vite, Tailwind CSS, Headless UI, React Dropzone (npm)
+- **Backend**: FastAPI + Uvicorn, LangGraph for orchestration (Poetry)
+- **MCP Server**: FastMCP framework with uv package manager
 - **Database**: SQLite with SQLAlchemy and Alembic migrations
 - **Processing**: Batch uploads with SSE progress streaming
 - **Export**: openpyxl for styled Excel workbooks

@@ -12,7 +12,7 @@ const ACCEPTED_FILE_TYPES = {
 export default function UploadArea() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     const validFiles = acceptedFiles.filter(file => {
       return file.size <= MAX_FILE_SIZE;
     });
