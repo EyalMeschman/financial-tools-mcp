@@ -2,44 +2,41 @@ import { renderHook, act } from '@testing-library/react';
 import { useSse } from './useSse';
 
 // Mock EventSource
-class MockEventSource {
-  url: string;
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
-  readyState: number = 1; // OPEN
+let mockEventSource: any;
 
-  constructor(url: string) {
-    this.url = url;
-  }
-
-  close() {
-    this.readyState = 2; // CLOSED
-  }
-
-  // Helper method to simulate events
-  simulateMessage(data: string) {
+const createMockEventSource = () => ({
+  url: '',
+  onmessage: null as ((event: MessageEvent) => void) | null,
+  onerror: null as ((event: Event) => void) | null,
+  readyState: 1,
+  close: jest.fn(),
+  simulateMessage: function(data: string) {
     if (this.onmessage) {
       const event = new MessageEvent('message', { data });
       this.onmessage(event);
     }
-  }
-
-  simulateError() {
+  },
+  simulateError: function() {
     if (this.onerror) {
       const event = new Event('error');
       this.onerror(event);
     }
   }
-}
+});
 
 // Mock the global EventSource
 const originalEventSource = global.EventSource;
 beforeEach(() => {
-  global.EventSource = MockEventSource as unknown as typeof EventSource;
+  mockEventSource = createMockEventSource();
+  global.EventSource = jest.fn().mockImplementation((url) => {
+    mockEventSource.url = url;
+    return mockEventSource;
+  }) as any;
 });
 
 afterEach(() => {
   global.EventSource = originalEventSource;
+  jest.clearAllMocks();
 });
 
 describe('useSse', () => {
@@ -50,12 +47,9 @@ describe('useSse', () => {
     expect(result.current.data).toBeNull();
     expect(result.current.error).toBeNull();
 
-    // Get the EventSource instance
-    const eventSource = new (global.EventSource as typeof MockEventSource)('/test-url');
-
     // Simulate first event with 25% progress
     act(() => {
-      eventSource.simulateMessage(JSON.stringify({ percentage: 25 }));
+      mockEventSource.simulateMessage(JSON.stringify({ percentage: 25 }));
     });
 
     expect(result.current.data).toEqual({ percentage: 25 });
@@ -63,7 +57,7 @@ describe('useSse', () => {
 
     // Simulate second event with 75% progress
     act(() => {
-      eventSource.simulateMessage(JSON.stringify({ percentage: 75 }));
+      mockEventSource.simulateMessage(JSON.stringify({ percentage: 75 }));
     });
 
     expect(result.current.data).toEqual({ percentage: 75 });
@@ -73,10 +67,8 @@ describe('useSse', () => {
   it('should handle JSON parse errors', () => {
     const { result } = renderHook(() => useSse('/test-url'));
 
-    const eventSource = new (global.EventSource as typeof MockEventSource)('/test-url');
-
     act(() => {
-      eventSource.simulateMessage('invalid json');
+      mockEventSource.simulateMessage('invalid json');
     });
 
     expect(result.current.data).toBeNull();
@@ -86,10 +78,8 @@ describe('useSse', () => {
   it('should handle connection errors', () => {
     const { result } = renderHook(() => useSse('/test-url'));
 
-    const eventSource = new (global.EventSource as typeof MockEventSource)('/test-url');
-
     act(() => {
-      eventSource.simulateError();
+      mockEventSource.simulateError();
     });
 
     expect(result.current.error).toBe('EventSource connection error');

@@ -11,9 +11,13 @@ const ACCEPTED_FILE_TYPES = {
   'image/png': ['.png']
 };
 
+interface ProgressData {
+  percentage: number;
+}
+
 export default function UploadArea() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const { data: progressData } = useSse(selectedFiles.length > 0 ? '/progress/demo' : '');
+  const { data: progressData } = useSse<ProgressData>(selectedFiles.length > 0 ? '/progress/demo' : '');
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const validFiles = acceptedFiles.filter(file => {
