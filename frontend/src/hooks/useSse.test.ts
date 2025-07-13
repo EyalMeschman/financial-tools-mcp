@@ -35,7 +35,7 @@ class MockEventSource {
 // Mock the global EventSource
 const originalEventSource = global.EventSource;
 beforeEach(() => {
-  global.EventSource = MockEventSource as any;
+  global.EventSource = MockEventSource as unknown as typeof EventSource;
 });
 
 afterEach(() => {
@@ -51,8 +51,7 @@ describe('useSse', () => {
     expect(result.current.error).toBeNull();
 
     // Get the EventSource instance
-    const eventSource = (EventSource as any).mock?.instances?.[0] || 
-      new (global.EventSource as any)('/test-url');
+    const eventSource = new (global.EventSource as typeof MockEventSource)('/test-url');
 
     // Simulate first event with 25% progress
     act(() => {
@@ -74,7 +73,7 @@ describe('useSse', () => {
   it('should handle JSON parse errors', () => {
     const { result } = renderHook(() => useSse('/test-url'));
 
-    const eventSource = new (global.EventSource as any)('/test-url');
+    const eventSource = new (global.EventSource as typeof MockEventSource)('/test-url');
 
     act(() => {
       eventSource.simulateMessage('invalid json');
@@ -87,7 +86,7 @@ describe('useSse', () => {
   it('should handle connection errors', () => {
     const { result } = renderHook(() => useSse('/test-url'));
 
-    const eventSource = new (global.EventSource as any)('/test-url');
+    const eventSource = new (global.EventSource as typeof MockEventSource)('/test-url');
 
     act(() => {
       eventSource.simulateError();

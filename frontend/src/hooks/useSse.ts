@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 
-interface UseSseReturn {
-  data: any;
+interface UseSseReturn<T = unknown> {
+  data: T | null;
   error: string | null;
 }
 
-export const useSse = (url: string): UseSseReturn => {
-  const [data, setData] = useState<any>(null);
+export const useSse = <T = unknown>(url: string): UseSseReturn<T> => {
+  const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -18,10 +18,10 @@ export const useSse = (url: string): UseSseReturn => {
 
     eventSource.onmessage = (event) => {
       try {
-        const parsedData = JSON.parse(event.data);
+        const parsedData = JSON.parse(event.data) as T;
         setData(parsedData);
         setError(null);
-      } catch (err) {
+      } catch {
         setError('Failed to parse JSON data');
       }
     };
