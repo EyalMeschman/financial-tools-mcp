@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useSse } from '../hooks/useSse';
+import { ProgressBar } from './ProgressBar';
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const MAX_FILES = 100;
@@ -9,8 +11,13 @@ const ACCEPTED_FILE_TYPES = {
   'image/png': ['.png']
 };
 
+interface ProgressData {
+  percentage: number;
+}
+
 export default function UploadArea() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const { data: progressData } = useSse<ProgressData>(selectedFiles.length > 0 ? '/progress/demo' : '');
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const validFiles = acceptedFiles.filter(file => {
@@ -64,6 +71,15 @@ export default function UploadArea() {
       {selectedFiles.length > 0 && (
         <div className="mt-4">
           <h3 className="text-lg font-medium mb-2">Selected Files ({selectedFiles.length})</h3>
+          {progressData?.percentage !== undefined && (
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm font-medium text-gray-700">Processing Progress</span>
+                <span className="text-sm text-gray-600">{progressData.percentage}%</span>
+              </div>
+              <ProgressBar percentage={progressData.percentage} />
+            </div>
+          )}
           <div className="space-y-2">
             {selectedFiles.map((file, index) => (
               <div
