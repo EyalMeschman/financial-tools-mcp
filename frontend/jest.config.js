@@ -8,10 +8,7 @@ export default {
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest'
   },
-  testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.(test|spec).(ts|tsx)',
-    '<rootDir>/src/**/*.(test|spec).(ts|tsx)'
-  ],
+  testMatch: ['**/?(*.)+(spec|test).[tj]s?(x)'],
   collectCoverageFrom: [
     'src/**/*.(ts|tsx)',
     '!src/**/*.d.ts',

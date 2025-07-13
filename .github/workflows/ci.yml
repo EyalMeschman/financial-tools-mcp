@@ -37,10 +37,19 @@ jobs:
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --without proto
+        run: poetry install --no-root --without proto --no-interaction
 
       - name: Run tests with pytest (excluding proto)
         run: poetry run pytest -m "not proto" --cov --cov-report=xml
+
+      - name: Check Python coverage threshold
+        run: |
+          COVERAGE=$(poetry run coverage report --show-missing | grep TOTAL | awk '{print $4}' | sed 's/%//')
+          echo "Python Coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "Error: Python coverage $COVERAGE% is below required 80%"
+            exit 1
+          fi
 
       - name: Run Ruff linting
         run: poetry run ruff check .
