@@ -1,5 +1,6 @@
 """Excel node for report generation."""
 
+import re
 from io import BytesIO
 
 from openpyxl import Workbook
@@ -10,20 +11,30 @@ from app.azure_adapter import InvoiceData
 
 
 def invoice_suffix(invoice: InvoiceData, filename: str) -> str:
-    """Generate a suffix for the invoice based on filename.
+    """Extract invoice suffix from filename per spec.
+
+    - Strip non-digits, take last 4, left-pad zeros
+    - If no digits → NO_INV_NUM
 
     Args:
         invoice: Invoice data (unused in current implementation)
         filename: Original filename
 
     Returns:
-        str: Suffix derived from filename (without extension)
+        str: Invoice suffix (4 digits or NO_INV_NUM)
     """
     if not filename:
-        return ""
+        return "NO_INV_NUM"
 
-    # Remove extension and return base name
-    return filename.rsplit(".", 1)[0] if "." in filename else filename
+    # Strip non-digits and extract all digits
+    digits = re.sub(r"\D", "", filename)
+
+    if not digits:
+        return "NO_INV_NUM"
+
+    # Take last 4 digits, left-pad with zeros if needed
+    last_four = digits[-4:]
+    return last_four.zfill(4)
 
 
 async def run(input: dict) -> dict:
@@ -31,19 +42,29 @@ async def run(input: dict) -> dict:
 
     Args:
         input: Input dictionary containing 'invoices' key with list of InvoiceData objects
+              and 'target_currency' key
 
     Returns:
         dict: Dictionary with 'xlsx' (BytesIO bytes) and 'row_count' keys
     """
     invoices: list[InvoiceData] = input.get("invoices", [])
+    target_currency: str = input.get("target_currency", "USD")
 
     # Create workbook and worksheet
     wb = Workbook()
     ws = wb.active
-    ws.title = "Invoice Report"
+    ws.title = "Invoices Report"
 
-    # Define headers
-    headers = ["Invoice ID", "Date", "Vendor Name", "Vendor Address", "Amount", "Currency", "Total Content", "Filename"]
+    # Define headers per spec
+    headers = [
+        "Date (DD/MM/YYYY)",
+        "Invoice Suffix",
+        f"{target_currency} Total Price",
+        "Foreign Currency Total Price",
+        "Foreign Currency Code",
+        "Exchange Rate (4 dp)",
+        "Vendor Name",
+    ]
 
     # Style headers
     header_font = Font(bold=True, color="FFFFFF")
@@ -60,28 +81,29 @@ async def run(input: dict) -> dict:
     # Write data rows
     row_num = 2
     for invoice in invoices:
-        # Extract filename from invoice suffix helper
-        filename = invoice_suffix(invoice, getattr(invoice, "_filename", ""))
+        # Extract filename from invoice data (should be stored in invoice)
+        filename = getattr(invoice, "_filename", "")
 
-        # Extract data with error handling
-        invoice_id = invoice.InvoiceId.content if invoice.InvoiceId else "ERROR"
+        # Extract data with error handling per spec
         date = invoice.InvoiceDate.content if invoice.InvoiceDate else "ERROR"
-        vendor_name = invoice.VendorName.content if invoice.VendorName else "ERROR"
-        vendor_address = invoice.VendorAddressRecipient.content if invoice.VendorAddressRecipient else "ERROR"
+        suffix = invoice_suffix(invoice, filename)
+        vendor_name = invoice.VendorName.content if invoice.VendorName else "N/A"
 
-        # Handle total and currency
-        amount = "ERROR"
-        currency = "ERROR"
-        total_content = "ERROR"
+        # Handle amounts and currency
+        target_total = "N/A"
+        foreign_total = "N/A"
+        foreign_currency = "N/A"
+        exchange_rate = "N/A"
 
-        if invoice.InvoiceTotal:
-            total_content = invoice.InvoiceTotal.content or "ERROR"
-            if invoice.InvoiceTotal.value_currency:
-                amount = invoice.InvoiceTotal.value_currency.amount
-                currency = invoice.InvoiceTotal.value_currency.currency_code or "ERROR"
+        if invoice.InvoiceTotal and invoice.InvoiceTotal.value_currency:
+            foreign_total = invoice.InvoiceTotal.value_currency.amount
+            foreign_currency = invoice.InvoiceTotal.value_currency.currency_code
+            # TODO: These will be populated by currency conversion nodes
+            # target_total = getattr(invoice, '_converted_amount', 'N/A')
+            # exchange_rate = getattr(invoice, '_exchange_rate', 'N/A')
 
         # Write row data
-        row_data = [invoice_id, date, vendor_name, vendor_address, amount, currency, total_content, filename]
+        row_data = [date, suffix, target_total, foreign_total, foreign_currency, exchange_rate, vendor_name]
 
         for col, value in enumerate(row_data, 1):
             ws.cell(row=row_num, column=col, value=value)
@@ -90,7 +112,7 @@ async def run(input: dict) -> dict:
 
     # Add placeholder ERROR rows if no invoices provided
     if not invoices:
-        error_row = ["ERROR"] * len(headers)
+        error_row = ["ERROR", "filename", "N/A", "N/A", "N/A", "N/A", "N/A"]
         for col, value in enumerate(error_row, 1):
             ws.cell(row=2, column=col, value=value)
         row_num = 3
