@@ -78,9 +78,9 @@ async def run(input: dict) -> dict:
                 conversion_data[filename] = {
                     "converted_total": file_data.get("converted_total"),
                     "exchange_rate": file_data.get("exchange_rate"),
-                    "status": file_data.get("status", "success")
+                    "status": file_data.get("status", "success"),
                 }
-        
+
         # Apply conversion results to invoices
         for invoice in invoices:
             filename = getattr(invoice, "_filename", "unknown")

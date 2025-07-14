@@ -1,19 +1,17 @@
 """Integration tests for the full invoice processing pipeline."""
 
 import asyncio
-import json
-import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.main import app
-from app.models import Base, Job, File as FileModel
 from app.db import get_db
+from app.main import app
+from app.models import Base
 
 
 # Override the database for testing
@@ -23,14 +21,14 @@ def test_db():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(bind=engine)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
+
     def override_get_db():
         db = TestingSessionLocal()
         try:
             yield db
         finally:
             db.close()
-    
+
     app.dependency_overrides[get_db] = override_get_db
     yield TestingSessionLocal
     app.dependency_overrides.clear()
@@ -46,8 +44,8 @@ def client(test_db):
 @pytest.fixture
 def mock_azure_extract():
     """Mock Azure Document Intelligence extraction."""
-    from app.azure_adapter import InvoiceData, DefaultContent, InvoiceTotal, ValueCurrency
-    
+    from app.azure_adapter import DefaultContent, InvoiceData, InvoiceTotal, ValueCurrency
+
     # Create mock invoice data for three different invoices
     mock_invoices = [
         InvoiceData(
@@ -56,9 +54,8 @@ def mock_azure_extract():
             VendorName=DefaultContent(content="Acme Corp"),
             VendorAddressRecipient=DefaultContent(content="123 Business St"),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=1000.0, currency_code="EUR"),
-                content="€1,000.00"
-            )
+                value_currency=ValueCurrency(amount=1000.0, currency_code="EUR"), content="€1,000.00"
+            ),
         ),
         InvoiceData(
             InvoiceId=DefaultContent(content="INV-002"),
@@ -66,9 +63,8 @@ def mock_azure_extract():
             VendorName=DefaultContent(content="Tech Solutions"),
             VendorAddressRecipient=DefaultContent(content="456 Tech Ave"),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=500.0, currency_code="GBP"),
-                content="£500.00"
-            )
+                value_currency=ValueCurrency(amount=500.0, currency_code="GBP"), content="£500.00"
+            ),
         ),
         InvoiceData(
             InvoiceId=DefaultContent(content="INV-003"),
@@ -76,12 +72,11 @@ def mock_azure_extract():
             VendorName=DefaultContent(content="Service Provider"),
             VendorAddressRecipient=DefaultContent(content="789 Service Blvd"),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=750.0, currency_code="USD"),
-                content="$750.00"
-            )
-        )
+                value_currency=ValueCurrency(amount=750.0, currency_code="USD"), content="$750.00"
+            ),
+        ),
     ]
-    
+
     async def mock_extract(file_path):
         # Return different mock data based on filename
         if "invoice1" in file_path:
@@ -92,8 +87,8 @@ def mock_azure_extract():
             return mock_invoices[2]
         else:
             return None
-    
-    with patch('app.azure_adapter.extract_invoice', side_effect=mock_extract):
+
+    with patch("app.azure_adapter.extract_invoice", side_effect=mock_extract):
         yield mock_extract
 
 
@@ -101,7 +96,7 @@ def mock_azure_extract():
 def mock_currency_rate():
     """Mock currency rate API."""
     from decimal import Decimal
-    
+
     async def mock_get_rate(date, from_currency, to_currency):
         # Return mock exchange rates
         rates = {
@@ -110,8 +105,8 @@ def mock_currency_rate():
             ("USD", "USD"): Decimal("1.0000"),
         }
         return rates.get((from_currency, to_currency), Decimal("1.0000"))
-    
-    with patch('app.currency.get_rate', side_effect=mock_get_rate):
+
+    with patch("app.currency.get_rate", side_effect=mock_get_rate):
         yield mock_get_rate
 
 
@@ -154,11 +149,11 @@ endstream
 endobj
 xref
 0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000201 00000 n 
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000201 00000 n
 trailer
 <<
 /Size 5
@@ -173,41 +168,40 @@ startxref
 @pytest.mark.asyncio
 async def test_full_pipeline_integration(client, mock_azure_extract, mock_currency_rate):
     """Test the full invoice processing pipeline with three tiny invoices."""
-    
+
     # Create three tiny PDF files
     pdf_data = create_tiny_pdf()
-    
+
     files = [
         ("files", ("invoice1.pdf", pdf_data, "application/pdf")),
         ("files", ("invoice2.pdf", pdf_data, "application/pdf")),
-        ("files", ("invoice3.pdf", pdf_data, "application/pdf"))
+        ("files", ("invoice3.pdf", pdf_data, "application/pdf")),
     ]
-    
+
     # Submit files for processing
-    response = client.post(
-        "/process-invoices",
-        files=files,
-        data={"target_currency": "USD"}
-    )
-    
+    response = client.post("/process-invoices", files=files, data={"target_currency": "USD"})
+
     assert response.status_code == 200
     job_data = response.json()
     assert "job_id" in job_data
     job_id = job_data["job_id"]
-    
+
     # Wait for pipeline to complete (mock execution should be fast)
     await asyncio.sleep(0.1)
-    
+
     # Check if export file was created
     export_path = Path("exports") / f"{job_id}.xlsx"
-    
+
     # The file might not exist if the pipeline failed, but let's test the download endpoint
     download_response = client.get(f"/download/{job_id}")
-    
+
     # If the file exists, we should get it
     if export_path.exists():
         assert download_response.status_code == 200
-        assert download_response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        assert (
+            download_response.headers["content-type"]
+            == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
     else:
         # If file doesn't exist, we should get 404
         assert download_response.status_code == 404
@@ -216,47 +210,35 @@ async def test_full_pipeline_integration(client, mock_azure_extract, mock_curren
 @pytest.mark.asyncio
 async def test_pipeline_basic_flow(client, mock_azure_extract, mock_currency_rate):
     """Test basic pipeline flow without SSE streaming."""
-    
+
     # Create test files
     pdf_data = create_tiny_pdf()
-    
-    files = [
-        ("files", ("test_invoice_123.pdf", pdf_data, "application/pdf"))
-    ]
-    
-    # Submit for processing  
-    response = client.post(
-        "/process-invoices", 
-        files=files,
-        data={"target_currency": "USD"}
-    )
-    
+
+    files = [("files", ("test_invoice_123.pdf", pdf_data, "application/pdf"))]
+
+    # Submit for processing
+    response = client.post("/process-invoices", files=files, data={"target_currency": "USD"})
+
     assert response.status_code == 200
     job_data = response.json()
     job_id = job_data["job_id"]
-    
+
     # Just test that we get a valid job ID
     assert job_id is not None
     assert len(job_id) > 0
 
 
-@pytest.mark.asyncio 
+@pytest.mark.asyncio
 async def test_error_handling(client):
     """Test error handling in the pipeline."""
-    
+
     # Test with oversized file
     large_content = b"x" * (2 * 1024 * 1024)  # 2MB file
-    
-    files = [
-        ("files", ("large_file.pdf", large_content, "application/pdf"))
-    ]
-    
-    response = client.post(
-        "/process-invoices",
-        files=files,
-        data={"target_currency": "USD"}
-    )
-    
+
+    files = [("files", ("large_file.pdf", large_content, "application/pdf"))]
+
+    response = client.post("/process-invoices", files=files, data={"target_currency": "USD"})
+
     assert response.status_code == 400
     assert "exceeds 1MB limit" in response.json()["detail"]
 
@@ -264,21 +246,14 @@ async def test_error_handling(client):
 @pytest.mark.asyncio
 async def test_too_many_files(client):
     """Test handling of too many files."""
-    
+
     pdf_data = create_tiny_pdf()
-    
+
     # Create 101 files (exceeds limit of 100)
-    files = [
-        ("files", (f"invoice_{i}.pdf", pdf_data, "application/pdf"))
-        for i in range(101)
-    ]
-    
-    response = client.post(
-        "/process-invoices",
-        files=files,
-        data={"target_currency": "USD"}
-    )
-    
+    files = [("files", (f"invoice_{i}.pdf", pdf_data, "application/pdf")) for i in range(101)]
+
+    response = client.post("/process-invoices", files=files, data={"target_currency": "USD"})
+
     assert response.status_code == 400
     assert "Maximum 100 files allowed" in response.json()["detail"]
 
@@ -286,7 +261,7 @@ async def test_too_many_files(client):
 @pytest.mark.asyncio
 async def test_download_nonexistent_job(client):
     """Test downloading report for non-existent job."""
-    
+
     response = client.get("/download/non-existent-job-id")
     assert response.status_code == 404
     assert "Report not found" in response.json()["detail"]

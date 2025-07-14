@@ -98,13 +98,13 @@ async def run(input: dict) -> dict:
         if invoice.InvoiceTotal and invoice.InvoiceTotal.value_currency:
             foreign_total = invoice.InvoiceTotal.value_currency.amount
             foreign_currency = invoice.InvoiceTotal.value_currency.currency_code
-            
+
             # Use converted amounts if available
-            target_total = getattr(invoice, '_converted_amount', 'N/A')
-            exchange_rate = getattr(invoice, '_exchange_rate', 'N/A')
-            
+            target_total = getattr(invoice, "_converted_amount", "N/A")
+            exchange_rate = getattr(invoice, "_exchange_rate", "N/A")
+
             # Format exchange rate to 4 decimal places if it's a number
-            if isinstance(exchange_rate, (int, float)):
+            if isinstance(exchange_rate, int | float):
                 exchange_rate = f"{exchange_rate:.4f}"
 
         # Write row data
@@ -131,14 +131,15 @@ async def run(input: dict) -> dict:
     excel_buffer = BytesIO()
     wb.save(excel_buffer)
     excel_buffer.seek(0)
-    
+
     # Also save to exports directory if job_id is provided
     job_id = input.get("job_id")
     if job_id:
         from pathlib import Path
+
         exports_dir = Path("exports")
         exports_dir.mkdir(exist_ok=True)
-        
+
         export_path = exports_dir / f"{job_id}.xlsx"
         wb.save(export_path)
 

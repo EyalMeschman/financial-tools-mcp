@@ -10,18 +10,14 @@ async def run(input: dict) -> dict:
     Returns:
         dict: Input dictionary with currency validation results
     """
-    target_currency = input.get("target_currency", "USD")
     invoices = input.get("invoices", [])
-    
+
     # Prepare data for currency conversion
     files = []
-    
+
     for invoice in invoices:
-        file_data = {
-            "filename": getattr(invoice, "_filename", "unknown"),
-            "status": "ready_for_conversion"
-        }
-        
+        file_data = {"filename": getattr(invoice, "_filename", "unknown"), "status": "ready_for_conversion"}
+
         # Extract currency information
         if invoice.InvoiceTotal and invoice.InvoiceTotal.value_currency:
             file_data["src_currency"] = invoice.InvoiceTotal.value_currency.currency_code
@@ -31,17 +27,17 @@ async def run(input: dict) -> dict:
             file_data["invoice_total"] = None
             file_data["status"] = "failed"
             file_data["error"] = "No currency information found in invoice"
-        
+
         # Extract date information
         if invoice.InvoiceDate:
             file_data["invoice_date"] = invoice.InvoiceDate.content
         else:
             file_data["invoice_date"] = "2024-01-01"  # Default date if not found
-        
+
         files.append(file_data)
-    
+
     # Update input with currency check results
     result = input.copy()
     result["files"] = files
-    
+
     return result
