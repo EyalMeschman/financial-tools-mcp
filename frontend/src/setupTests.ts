@@ -11,9 +11,26 @@ global.EventSource = jest.fn().mockImplementation(() => ({
 // Mock fetch globally for all tests
 global.fetch = jest.fn();
 
-// Mock ResizeObserver
-global.ResizeObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
-}));
+// Mock ResizeObserver for Headless UI
+class MockResizeObserver {
+  observe = jest.fn();
+  unobserve = jest.fn();
+  disconnect = jest.fn();
+  constructor(callback: ResizeObserverCallback) {
+    // Store callback for potential use in tests
+  }
+}
+
+global.ResizeObserver = MockResizeObserver as any;
+
+// Mock IntersectionObserver for Headless UI
+class MockIntersectionObserver {
+  observe = jest.fn();
+  unobserve = jest.fn();
+  disconnect = jest.fn();
+  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+    // Store callback for potential use in tests
+  }
+}
+
+global.IntersectionObserver = MockIntersectionObserver as any;
