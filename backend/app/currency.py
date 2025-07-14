@@ -7,34 +7,36 @@ from decimal import ROUND_HALF_UP, Decimal
 import httpx
 from dateutil import parser as date_parser
 
+
 # Thread-safe circuit breaker state
 class CircuitBreaker:
     """Thread-safe circuit breaker for API calls."""
-    
+
     def __init__(self, max_failures: int = 2):
         self._failure_count = 0
         self._max_failures = max_failures
         self._lock = asyncio.Lock()
-    
+
     async def is_open(self) -> bool:
         """Check if circuit breaker is open (blocking calls)."""
         async with self._lock:
             return self._failure_count >= self._max_failures
-    
+
     async def record_success(self) -> None:
         """Record successful API call."""
         async with self._lock:
             self._failure_count = 0
-    
+
     async def record_failure(self) -> None:
         """Record failed API call."""
         async with self._lock:
             self._failure_count += 1
-    
+
     async def get_failure_count(self) -> int:
         """Get current failure count (for testing)."""
         async with self._lock:
             return self._failure_count
+
 
 # Global circuit breaker instance
 _circuit_breaker = CircuitBreaker()
@@ -87,7 +89,7 @@ async def get_rate(date: str, from_: str, to_: str) -> Decimal:
 
     # Make API request with httpx
     url = f"https://api.frankfurter.app/{norm_date}?from={from_currency}&to={to_currency}"
-    
+
     # Get timeout from environment or default to 2.0 seconds
     timeout = float(os.getenv("FRANKFURTER_TIMEOUT", "2.0"))
 

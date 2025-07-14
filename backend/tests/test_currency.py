@@ -82,7 +82,7 @@ class TestGetRate:
         """Test that timeouts increment the failure counter."""
         # Ensure clean state
         await reset_circuit_breaker()
-        
+
         with respx.mock:
             respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
                 side_effect=httpx.TimeoutException("Timeout")
@@ -98,7 +98,7 @@ class TestGetRate:
         """Test that network errors increment the failure counter."""
         # Ensure clean state
         await reset_circuit_breaker()
-        
+
         with respx.mock:
             respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
                 side_effect=httpx.ConnectError("Connection failed")
@@ -114,7 +114,7 @@ class TestGetRate:
         """Test that the third consecutive failure raises FrankfurterDown."""
         # Ensure clean state
         await reset_circuit_breaker()
-        
+
         # First two failures
         for i in range(2):
             with respx.mock:
@@ -138,7 +138,7 @@ class TestGetRate:
         """Test that successful requests reset the failure counter."""
         # Ensure clean state
         await reset_circuit_breaker()
-        
+
         # First failure
         with respx.mock:
             respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
@@ -168,7 +168,7 @@ class TestGetRate:
         """Test handling of invalid JSON responses."""
         # Ensure clean state
         await reset_circuit_breaker()
-        
+
         with respx.mock:
             respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
                 return_value=httpx.Response(200, text="Not JSON")
@@ -184,7 +184,7 @@ class TestGetRate:
         """Test handling when target currency is missing from response."""
         # Ensure clean state
         await reset_circuit_breaker()
-        
+
         incomplete_response = {"amount": 1.0, "base": "USD", "date": "2025-07-10", "rates": {}}
 
         with respx.mock:
@@ -202,7 +202,7 @@ class TestGetRate:
         """Test that invalid dates raise ValueError."""
         # Ensure clean state
         await reset_circuit_breaker()
-        
+
         with pytest.raises(ValueError, match="Invalid date format"):
             # This should fail in date normalization before making any request
             await get_rate("invalid-date-32-13-2025", "USD", "EUR")
@@ -239,9 +239,10 @@ class TestCircuitBreakerHelpers:
 
         # Simulate some failures by manually calling record_failure
         from app.currency import _circuit_breaker
+
         await _circuit_breaker.record_failure()
         await _circuit_breaker.record_failure()
-        
+
         assert await get_failure_count() == 2
 
         # Reset and verify it's back to 0
@@ -256,8 +257,9 @@ class TestCircuitBreakerHelpers:
 
         # Manually increment count to test getter
         from app.currency import _circuit_breaker
+
         await _circuit_breaker.record_failure()
         await _circuit_breaker.record_failure()
         await _circuit_breaker.record_failure()
-        
+
         assert await get_failure_count() == 3

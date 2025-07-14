@@ -42,7 +42,7 @@ class File(Base):
     original_currency: Mapped[str | None] = mapped_column(String)
     target_currency: Mapped[str | None] = mapped_column(String)
     error_message: Mapped[str | None] = mapped_column(String)
-    
+
     # New columns for currency conversion tracking
     converted_total: Mapped[float | None] = mapped_column(Numeric(10, 2), index=True)
     exchange_rate: Mapped[float | None] = mapped_column(Numeric(10, 6), index=True)
