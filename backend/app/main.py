@@ -98,9 +98,7 @@ async def execute_pipeline(job_id: str, files: list[dict], target_currency: str)
 
     except asyncio.TimeoutError:
         # Send timeout error
-        await progress_queue.put(
-            {"job_id": job_id, "status": "error", "message": "Pipeline execution timed out"}
-        )
+        await progress_queue.put({"job_id": job_id, "status": "error", "message": "Pipeline execution timed out"})
     except Exception as e:
         # Send error
         await progress_queue.put(
