@@ -1,6 +1,18 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import UploadArea from './UploadArea';
 
+const mockCurrencies = {
+  USD: { name: "United States Dollar", symbol: "$" },
+  EUR: { name: "Euro", symbol: "€" }
+};
+
+beforeEach(() => {
+  (global.fetch as jest.Mock).mockResolvedValue({
+    ok: true,
+    json: async () => mockCurrencies,
+  });
+});
+
 test('displays selected files in DOM after selection', async () => {
   render(<UploadArea />);
 

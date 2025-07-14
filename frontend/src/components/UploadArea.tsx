@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useSse } from '../hooks/useSse';
 import { ProgressBar } from './ProgressBar';
+import CurrencySelect from './CurrencySelect';
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const MAX_FILES = 100;
@@ -17,6 +18,7 @@ interface ProgressData {
 
 export default function UploadArea() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [targetCurrency, setTargetCurrency] = useState<string>('USD');
   const { data: progressData } = useSse<ProgressData>(selectedFiles.length > 0 ? '/progress/demo' : '');
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -43,6 +45,35 @@ export default function UploadArea() {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleSubmit = async () => {
+    if (selectedFiles.length === 0) return;
+
+    const formData = new FormData();
+    selectedFiles.forEach(file => {
+      formData.append('files', file);
+    });
+    formData.append('target_currency', targetCurrency);
+
+    try {
+      const response = await fetch('/api/process-invoices', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Job submitted:', result.job_id);
+        // TODO: Handle successful submission
+      } else {
+        console.error('Failed to submit files');
+        // TODO: Handle submission error
+      }
+    } catch (error) {
+      console.error('Error submitting files:', error);
+      // TODO: Handle network error
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div
@@ -66,6 +97,27 @@ export default function UploadArea() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <label htmlFor="currency-select" className="text-sm font-medium text-gray-700">
+            Target Currency:
+          </label>
+          <CurrencySelect 
+            selectedCurrency={targetCurrency}
+            onCurrencyChange={setTargetCurrency}
+          />
+        </div>
+        {selectedFiles.length > 0 && (
+          <button
+            onClick={handleSubmit}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            data-testid="submit-button"
+          >
+            Process Invoices
+          </button>
+        )}
       </div>
 
       {selectedFiles.length > 0 && (
