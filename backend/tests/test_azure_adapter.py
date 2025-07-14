@@ -1,48 +1,68 @@
 """Tests for Azure Document Intelligence adapter."""
 
 import os
-from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from app.azure_adapter import InvoiceData, _extract_from_azure_response, extract_invoice
+from app.azure_adapter import (
+    DefaultContent,
+    InvoiceData,
+    InvoiceTotal,
+    SimpleInvoiceData,
+    ValueCurrency,
+    _extract_from_azure_response,
+    extract_invoice,
+    extract_invoice_simple,
+    from_azure_response,
+    to_simple_format,
+)
 
 
-class TestInvoiceData:
-    """Test cases for the InvoiceData dataclass."""
+class TestDataClasses:
+    """Test cases for the data classes."""
 
     def test_invoice_data_creation(self):
-        """Test InvoiceData creation with new simplified structure."""
+        """Test InvoiceData creation with robust structure."""
         invoice_data = InvoiceData(
-            date="2025-01-15",
-            total=914.50,
-            currency="USD",
-            vendor="Test Company Inc.",
-            filename="test_invoice.pdf"
+            InvoiceDate=DefaultContent("2025-01-15"),
+            InvoiceId=DefaultContent("INV-12345"),
+            InvoiceTotal=InvoiceTotal(
+                value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="$914.50"
+            ),
+            VendorName=DefaultContent("Test Company Inc."),
+            VendorAddressRecipient=DefaultContent("123 Main St"),
         )
 
-        assert invoice_data.date == "2025-01-15"
-        assert invoice_data.total == 914.50
-        assert invoice_data.currency == "USD"
-        assert invoice_data.vendor == "Test Company Inc."
-        assert invoice_data.filename == "test_invoice.pdf"
+        assert invoice_data.InvoiceDate.content == "2025-01-15"
+        assert invoice_data.InvoiceId.content == "INV-12345"
+        assert invoice_data.InvoiceTotal.value_currency.amount == 914.50
+        assert invoice_data.InvoiceTotal.value_currency.currency_code == "USD"
+        assert invoice_data.VendorName.content == "Test Company Inc."
+
+    def test_simple_invoice_data_creation(self):
+        """Test SimpleInvoiceData creation."""
+        simple_data = SimpleInvoiceData(
+            date="2025-01-15", total=914.50, currency="USD", vendor="Test Company Inc.", filename="test_invoice.pdf"
+        )
+
+        assert simple_data.date == "2025-01-15"
+        assert simple_data.total == 914.50
+        assert simple_data.currency == "USD"
+        assert simple_data.vendor == "Test Company Inc."
+        assert simple_data.filename == "test_invoice.pdf"
 
     def test_invoice_data_with_none_values(self):
         """Test InvoiceData with None values."""
         invoice_data = InvoiceData(
-            date=None,
-            total=None,
-            currency=None,
-            vendor=None,
-            filename="test_invoice.pdf"
+            InvoiceDate=None, InvoiceId=None, InvoiceTotal=None, VendorName=None, VendorAddressRecipient=None
         )
 
-        assert invoice_data.date is None
-        assert invoice_data.total is None
-        assert invoice_data.currency is None
-        assert invoice_data.vendor is None
-        assert invoice_data.filename == "test_invoice.pdf"
+        assert invoice_data.InvoiceDate is None
+        assert invoice_data.InvoiceId is None
+        assert invoice_data.InvoiceTotal is None
+        assert invoice_data.VendorName is None
+        assert invoice_data.VendorAddressRecipient is None
 
 
 class TestExtractFromAzureResponse:
@@ -53,13 +73,14 @@ class TestExtractFromAzureResponse:
         # Mock Azure response structure
         mock_date_field = Mock()
         mock_date_field.content = "2025-01-15"
-        
+
         mock_total_field = Mock()
         mock_value_currency = Mock()
         mock_value_currency.amount = 914.50
         mock_value_currency.currency_code = "USD"
         mock_total_field.value_currency = mock_value_currency
-        
+        mock_total_field.content = "$914.50"
+
         mock_vendor_field = Mock()
         mock_vendor_field.content = "Test Company Inc."
 
@@ -76,21 +97,21 @@ class TestExtractFromAzureResponse:
         mock_result.documents = [mock_document]
 
         # Test the function
-        result = _extract_from_azure_response(mock_result, "test_invoice.pdf")
+        result = _extract_from_azure_response(mock_result)
 
         assert result is not None
-        assert result.date == "2025-01-15"
-        assert result.total == 914.50
-        assert result.currency == "USD"
-        assert result.vendor == "Test Company Inc."
-        assert result.filename == "test_invoice.pdf"
+        assert result.InvoiceDate.content == "2025-01-15"
+        assert result.InvoiceTotal.value_currency.amount == 914.50
+        assert result.InvoiceTotal.value_currency.currency_code == "USD"
+        assert result.InvoiceTotal.content == "$914.50"
+        assert result.VendorName.content == "Test Company Inc."
 
     def test_extract_no_documents(self):
         """Test handling when no documents in response."""
         mock_result = Mock()
         mock_result.documents = []
 
-        result = _extract_from_azure_response(mock_result, "test_invoice.pdf")
+        result = _extract_from_azure_response(mock_result)
         assert result is None
 
     def test_extract_missing_fields(self):
@@ -103,14 +124,14 @@ class TestExtractFromAzureResponse:
         mock_result = Mock()
         mock_result.documents = [mock_document]
 
-        result = _extract_from_azure_response(mock_result, "test_invoice.pdf")
+        result = _extract_from_azure_response(mock_result)
 
         assert result is not None
-        assert result.date is None
-        assert result.total is None
-        assert result.currency is None
-        assert result.vendor is None
-        assert result.filename == "test_invoice.pdf"
+        assert result.InvoiceDate is None
+        assert result.InvoiceId is None
+        assert result.InvoiceTotal is None
+        assert result.VendorName is None
+        assert result.VendorAddressRecipient is None
 
     def test_extract_vendor_fallback(self):
         """Test vendor extraction fallback to VendorAddressRecipient."""
@@ -127,10 +148,77 @@ class TestExtractFromAzureResponse:
         mock_result = Mock()
         mock_result.documents = [mock_document]
 
-        result = _extract_from_azure_response(mock_result, "test_invoice.pdf")
+        result = _extract_from_azure_response(mock_result)
 
         assert result is not None
-        assert result.vendor == "ABC Corp, 123 Main St"
+        assert result.VendorAddressRecipient.content == "ABC Corp, 123 Main St"
+        assert result.VendorName is None
+
+
+class TestConversionHelpers:
+    """Test cases for format conversion helpers."""
+
+    def test_to_simple_format_complete(self):
+        """Test conversion from full to simple format with all fields."""
+        full_data = InvoiceData(
+            InvoiceDate=DefaultContent("2025-01-15"),
+            InvoiceId=DefaultContent("INV-12345"),
+            InvoiceTotal=InvoiceTotal(
+                value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="$914.50"
+            ),
+            VendorName=DefaultContent("Test Company Inc."),
+            VendorAddressRecipient=DefaultContent("123 Main St"),
+        )
+
+        result = to_simple_format(full_data, "test_invoice.pdf")
+
+        assert result.date == "2025-01-15"
+        assert result.total == 914.50
+        assert result.currency == "USD"
+        assert result.vendor == "Test Company Inc."  # Should prefer VendorName
+        assert result.filename == "test_invoice.pdf"
+
+    def test_to_simple_format_with_fallbacks(self):
+        """Test conversion with vendor fallback to address."""
+        full_data = InvoiceData(
+            InvoiceDate=None,
+            InvoiceId=None,
+            InvoiceTotal=None,
+            VendorName=None,
+            VendorAddressRecipient=DefaultContent("ABC Corp, 123 Main St"),
+        )
+
+        result = to_simple_format(full_data, "test_invoice.pdf")
+
+        assert result.date is None
+        assert result.total is None
+        assert result.currency is None
+        assert result.vendor == "ABC Corp, 123 Main St"  # Should use address as fallback
+        assert result.filename == "test_invoice.pdf"
+
+    def test_to_simple_format_empty(self):
+        """Test conversion with empty data."""
+        full_data = InvoiceData(
+            InvoiceDate=None, InvoiceId=None, InvoiceTotal=None, VendorName=None, VendorAddressRecipient=None
+        )
+
+        result = to_simple_format(full_data, "test_invoice.pdf")
+
+        assert result.date is None
+        assert result.total is None
+        assert result.currency is None
+        assert result.vendor is None
+        assert result.filename == "test_invoice.pdf"
+
+    def test_from_azure_response_alias(self):
+        """Test from_azure_response is working as alias."""
+        mock_result = Mock()
+        mock_result.documents = []
+
+        result1 = from_azure_response(mock_result)
+        result2 = _extract_from_azure_response(mock_result)
+
+        assert result1 == result2  # Both should return None
 
 
 class TestExtractInvoice:
@@ -190,13 +278,14 @@ class TestExtractInvoice:
             # Mock successful Azure response
             mock_date_field = Mock()
             mock_date_field.content = "2025-01-15"
-            
+
             mock_total_field = Mock()
             mock_value_currency = Mock()
             mock_value_currency.amount = 914.50
             mock_value_currency.currency_code = "USD"
             mock_total_field.value_currency = mock_value_currency
-            
+            mock_total_field.content = "$914.50"
+
             mock_vendor_field = Mock()
             mock_vendor_field.content = "Test Company Inc."
 
@@ -217,17 +306,14 @@ class TestExtractInvoice:
             result = await extract_invoice("test_invoice.pdf")
 
             assert result is not None
-            assert result.date == "2025-01-15"
-            assert result.total == 914.50
-            assert result.currency == "USD"
-            assert result.vendor == "Test Company Inc."
-            assert result.filename == "test_invoice.pdf"
+            assert result.InvoiceDate.content == "2025-01-15"
+            assert result.InvoiceTotal.value_currency.amount == 914.50
+            assert result.InvoiceTotal.value_currency.currency_code == "USD"
+            assert result.VendorName.content == "Test Company Inc."
 
             # Verify API was called correctly
             mock_client.begin_analyze_document.assert_called_once_with(
-                "prebuilt-invoice", 
-                b"mock pdf data", 
-                content_type="application/pdf"
+                "prebuilt-invoice", b"mock pdf data", content_type="application/pdf"
             )
 
     @pytest.mark.asyncio
@@ -260,6 +346,41 @@ class TestExtractInvoice:
 
             result = await extract_invoice("test_invoice.pdf")
             assert result is None
+
+    @pytest.mark.asyncio
+    @patch("app.azure_adapter.extract_invoice")
+    async def test_extract_invoice_simple_success(self, mock_extract):
+        """Test successful simple extraction."""
+        # Mock full extraction result
+        full_data = InvoiceData(
+            InvoiceDate=DefaultContent("2025-01-15"),
+            InvoiceId=DefaultContent("INV-12345"),
+            InvoiceTotal=InvoiceTotal(
+                value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="$914.50"
+            ),
+            VendorName=DefaultContent("Test Company Inc."),
+            VendorAddressRecipient=None,
+        )
+        mock_extract.return_value = full_data
+
+        # Test simple extraction
+        result = await extract_invoice_simple("test_invoice.pdf")
+
+        assert result is not None
+        assert result.date == "2025-01-15"
+        assert result.total == 914.50
+        assert result.currency == "USD"
+        assert result.vendor == "Test Company Inc."
+        assert result.filename == "test_invoice.pdf"
+
+    @pytest.mark.asyncio
+    @patch("app.azure_adapter.extract_invoice")
+    async def test_extract_invoice_simple_failure(self, mock_extract):
+        """Test simple extraction when full extraction fails."""
+        mock_extract.return_value = None
+
+        result = await extract_invoice_simple("test_invoice.pdf")
+        assert result is None
 
 
 # VCR cassette tests would go here when we have real Azure API calls to record
