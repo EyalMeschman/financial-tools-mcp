@@ -6,8 +6,9 @@ import uuid
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
+from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import File as FileModel
@@ -88,13 +89,16 @@ async def execute_pipeline(job_id: str, files: list[dict], target_currency: str)
             }
         )
 
-        # Update database
-        db = next(get_db())
-        job = db.query(Job).filter(Job.job_id == job_id).first()
-        if job:
-            job.status = "completed"
-            job.processed = len(files)
-            db.commit()
+        # Update database - use proper session management
+        db_session = next(get_db())
+        try:
+            job = db_session.query(Job).filter(Job.job_id == job_id).first()
+            if job:
+                job.status = "completed"
+                job.processed = len(files)
+                db_session.commit()
+        finally:
+            db_session.close()
 
     except asyncio.TimeoutError:
         # Send timeout error
@@ -105,12 +109,15 @@ async def execute_pipeline(job_id: str, files: list[dict], target_currency: str)
             {"job_id": job_id, "status": "error", "message": f"Pipeline execution failed: {str(e)}"}
         )
 
-        # Update database
-        db = next(get_db())
-        job = db.query(Job).filter(Job.job_id == job_id).first()
-        if job:
-            job.status = "error"
-            db.commit()
+        # Update database - use proper session management
+        db_session = next(get_db())
+        try:
+            job = db_session.query(Job).filter(Job.job_id == job_id).first()
+            if job:
+                job.status = "error"
+                db_session.commit()
+        finally:
+            db_session.close()
 
 
 async def event_generator(job_id: str) -> AsyncGenerator[str, None]:
@@ -141,7 +148,11 @@ async def event_generator(job_id: str) -> AsyncGenerator[str, None]:
 
 
 @app.post("/process-invoices")
-async def process_invoices(files: list[UploadFile] = File(...), target_currency: str = Form("USD")):
+async def process_invoices(
+    files: list[UploadFile] = File(...), 
+    target_currency: str = Form("USD"), 
+    db: Session = Depends(get_db)
+):
     """Process uploaded invoice files."""
     if len(files) > 100:
         raise HTTPException(status_code=400, detail="Maximum 100 files allowed")
@@ -166,7 +177,6 @@ async def process_invoices(files: list[UploadFile] = File(...), target_currency:
         file_list.append({"filename": upload_file.filename, "file_data": file_data})
 
     # Create database job record
-    db = next(get_db())
     job = Job(job_id=job_id, status="processing", processed=0, total=len(files))
     db.add(job)
 

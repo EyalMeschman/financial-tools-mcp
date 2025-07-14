@@ -16,7 +16,9 @@ from app.models import Base
 @pytest.fixture
 def test_db():
     """Create a test database."""
-    engine = create_engine("sqlite:///:memory:")
+    # Use file-based SQLite for better thread safety
+    engine = create_engine("sqlite:///test.db", connect_args={"check_same_thread": False})
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -30,6 +32,11 @@ def test_db():
     app.dependency_overrides[get_db] = override_get_db
     yield TestingSessionLocal
     app.dependency_overrides.clear()
+    
+    # Clean up test database
+    import os
+    if os.path.exists("test.db"):
+        os.remove("test.db")
 
 
 @pytest.fixture
@@ -163,7 +170,7 @@ startxref
     return pdf_content
 
 
-def test_full_pipeline_integration(client, mock_azure_extract, mock_currency_rate):
+def test_full_pipeline_integration(client, test_db, mock_azure_extract, mock_currency_rate):
     """Test the full invoice processing pipeline with three tiny invoices."""
 
     # Create three tiny PDF files
@@ -190,7 +197,7 @@ def test_full_pipeline_integration(client, mock_azure_extract, mock_currency_rat
     # This tests the full API contract without hanging
 
 
-def test_pipeline_basic_flow(client, mock_azure_extract, mock_currency_rate):
+def test_pipeline_basic_flow(client, test_db, mock_azure_extract, mock_currency_rate):
     """Test basic pipeline flow without SSE streaming."""
 
     # Create test files
