@@ -24,9 +24,9 @@ export default function CurrencySelect({ selectedCurrency, onCurrencyChange }: C
         const currencyData = await response.json();
         
         // Convert currency data to array and filter out non-standard currencies
-        const currencyArray = Object.entries(currencyData)
+        const currencyArray = Object.entries(currencyData as Record<string, { name: string; symbol: string }>)
           .filter(([code]) => code.length === 3) // Only ISO 3-letter codes
-          .map(([code, data]: [string, { name: string; symbol: string }]) => ({
+          .map(([code, data]) => ({
             code,
             name: data.name,
             symbol: data.symbol
