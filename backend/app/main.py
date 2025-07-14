@@ -149,9 +149,7 @@ async def event_generator(job_id: str) -> AsyncGenerator[str, None]:
 
 @app.post("/process-invoices")
 async def process_invoices(
-    files: list[UploadFile] = File(...), 
-    target_currency: str = Form("USD"), 
-    db: Session = Depends(get_db)
+    files: list[UploadFile] = File(...), target_currency: str = Form("USD"), db: Session = Depends(get_db)
 ):
     """Process uploaded invoice files."""
     if len(files) > 100:

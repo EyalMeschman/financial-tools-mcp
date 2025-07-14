@@ -32,9 +32,10 @@ def test_db():
     app.dependency_overrides[get_db] = override_get_db
     yield TestingSessionLocal
     app.dependency_overrides.clear()
-    
+
     # Clean up test database
     import os
+
     if os.path.exists("test.db"):
         os.remove("test.db")
 
