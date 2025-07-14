@@ -12,9 +12,12 @@ from app.currency import FrankfurterDown, _normalize_date, get_failure_count, ge
 class TestGetRate:
     """Test cases for the get_rate function."""
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True, scope="function")
+    async def setup(self):
         """Reset circuit breaker before each test."""
-        reset_circuit_breaker()
+        await reset_circuit_breaker()
+        yield
+        await reset_circuit_breaker()
 
     @pytest.mark.asyncio
     async def test_happy_path(self):
@@ -28,8 +31,8 @@ class TestGetRate:
 
             result = await get_rate("2025-07-10", "USD", "EUR")
 
-            assert result == Decimal("1.2")
-            assert get_failure_count() == 0
+            assert result == Decimal("1.20")  # Should be rounded to 2 decimal places
+            assert await get_failure_count() == 0
 
     @pytest.mark.asyncio
     async def test_currency_normalization(self):
@@ -59,7 +62,7 @@ class TestGetRate:
                 )
 
                 result = await get_rate(date_format, "USD", "EUR")
-                assert result == Decimal("1.2")
+                assert result == Decimal("1.20")  # Should be rounded to 2 decimal places
 
     @pytest.mark.asyncio
     async def test_failure_increments_counter(self):
@@ -72,11 +75,14 @@ class TestGetRate:
             with pytest.raises(Exception, match="Failed to fetch exchange rate"):
                 await get_rate("2025-07-10", "USD", "EUR")
 
-            assert get_failure_count() == 1
+            assert await get_failure_count() == 1
 
     @pytest.mark.asyncio
     async def test_timeout_increments_counter(self):
         """Test that timeouts increment the failure counter."""
+        # Ensure clean state
+        await reset_circuit_breaker()
+
         with respx.mock:
             respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
                 side_effect=httpx.TimeoutException("Timeout")
@@ -85,11 +91,14 @@ class TestGetRate:
             with pytest.raises(Exception, match="Request timeout"):
                 await get_rate("2025-07-10", "USD", "EUR")
 
-            assert get_failure_count() == 1
+            assert await get_failure_count() == 1
 
     @pytest.mark.asyncio
     async def test_network_error_increments_counter(self):
         """Test that network errors increment the failure counter."""
+        # Ensure clean state
+        await reset_circuit_breaker()
+
         with respx.mock:
             respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
                 side_effect=httpx.ConnectError("Connection failed")
@@ -98,11 +107,14 @@ class TestGetRate:
             with pytest.raises(Exception, match="Network error"):
                 await get_rate("2025-07-10", "USD", "EUR")
 
-            assert get_failure_count() == 1
+            assert await get_failure_count() == 1
 
     @pytest.mark.asyncio
     async def test_third_failure_raises_frankfurter_down(self):
         """Test that the third consecutive failure raises FrankfurterDown."""
+        # Ensure clean state
+        await reset_circuit_breaker()
+
         # First two failures
         for i in range(2):
             with respx.mock:
@@ -113,17 +125,20 @@ class TestGetRate:
                 with pytest.raises(Exception, match="Failed to fetch exchange rate"):
                     await get_rate("2025-07-10", "USD", "EUR")
 
-                assert get_failure_count() == i + 1
+                assert await get_failure_count() == i + 1
 
         # Third failure should raise FrankfurterDown without making a request
         with pytest.raises(FrankfurterDown, match="Frankfurter API is down after 3 consecutive failures"):
             await get_rate("2025-07-10", "USD", "EUR")
 
-        assert get_failure_count() == 2  # Should stay at 2 since circuit breaker prevented the 3rd request
+        assert await get_failure_count() == 2  # Should stay at 2 since circuit breaker prevented the 3rd request
 
     @pytest.mark.asyncio
     async def test_success_resets_failure_count(self):
         """Test that successful requests reset the failure counter."""
+        # Ensure clean state
+        await reset_circuit_breaker()
+
         # First failure
         with respx.mock:
             respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
@@ -133,7 +148,7 @@ class TestGetRate:
             with pytest.raises(Exception, match="Failed to fetch exchange rate"):
                 await get_rate("2025-07-10", "USD", "EUR")
 
-            assert get_failure_count() == 1
+            assert await get_failure_count() == 1
 
         # Successful request should reset counter
         expected_response = {"amount": 1.0, "base": "USD", "date": "2025-07-10", "rates": {"EUR": 1.2}}
@@ -145,12 +160,15 @@ class TestGetRate:
 
             result = await get_rate("2025-07-10", "USD", "EUR")
 
-            assert result == Decimal("1.2")
-            assert get_failure_count() == 0
+            assert result == Decimal("1.20")  # Should be rounded to 2 decimal places
+            assert await get_failure_count() == 0
 
     @pytest.mark.asyncio
     async def test_invalid_json_response(self):
         """Test handling of invalid JSON responses."""
+        # Ensure clean state
+        await reset_circuit_breaker()
+
         with respx.mock:
             respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
                 return_value=httpx.Response(200, text="Not JSON")
@@ -159,11 +177,14 @@ class TestGetRate:
             with pytest.raises(Exception, match="Invalid JSON response"):
                 await get_rate("2025-07-10", "USD", "EUR")
 
-            assert get_failure_count() == 1
+            assert await get_failure_count() == 1
 
     @pytest.mark.asyncio
     async def test_missing_currency_in_response(self):
         """Test handling when target currency is missing from response."""
+        # Ensure clean state
+        await reset_circuit_breaker()
+
         incomplete_response = {"amount": 1.0, "base": "USD", "date": "2025-07-10", "rates": {}}
 
         with respx.mock:
@@ -174,11 +195,14 @@ class TestGetRate:
             with pytest.raises(Exception, match="Currency EUR not found in response"):
                 await get_rate("2025-07-10", "USD", "EUR")
 
-            assert get_failure_count() == 1
+            assert await get_failure_count() == 1
 
     @pytest.mark.asyncio
     async def test_invalid_date_format(self):
         """Test that invalid dates raise ValueError."""
+        # Ensure clean state
+        await reset_circuit_breaker()
+
         with pytest.raises(ValueError, match="Invalid date format"):
             # This should fail in date normalization before making any request
             await get_rate("invalid-date-32-13-2025", "USD", "EUR")
@@ -206,28 +230,36 @@ class TestDateNormalization:
 class TestCircuitBreakerHelpers:
     """Test cases for circuit breaker helper functions."""
 
-    def test_reset_circuit_breaker(self):
+    @pytest.mark.asyncio
+    async def test_reset_circuit_breaker(self):
         """Test circuit breaker reset functionality."""
-        # Simulate some failures
-        reset_circuit_breaker()
+        # Reset circuit breaker and verify it's at 0
+        await reset_circuit_breaker()
+        assert await get_failure_count() == 0
 
-        # Manually increment (this would normally happen through failed requests)
-        import app.currency
+        # Simulate some failures by manually calling record_failure
+        from app.currency import _circuit_breaker
 
-        app.currency._failure_count = 2
+        await _circuit_breaker.record_failure()
+        await _circuit_breaker.record_failure()
 
-        assert get_failure_count() == 2
+        assert await get_failure_count() == 2
 
-        reset_circuit_breaker()
-        assert get_failure_count() == 0
+        # Reset and verify it's back to 0
+        await reset_circuit_breaker()
+        assert await get_failure_count() == 0
 
-    def test_get_failure_count(self):
+    @pytest.mark.asyncio
+    async def test_get_failure_count(self):
         """Test failure count getter."""
-        reset_circuit_breaker()
-        assert get_failure_count() == 0
+        await reset_circuit_breaker()
+        assert await get_failure_count() == 0
 
-        # Manually set count to test getter
-        import app.currency
+        # Manually increment count to test getter
+        from app.currency import _circuit_breaker
 
-        app.currency._failure_count = 5
-        assert get_failure_count() == 5
+        await _circuit_breaker.record_failure()
+        await _circuit_breaker.record_failure()
+        await _circuit_breaker.record_failure()
+
+        assert await get_failure_count() == 3
