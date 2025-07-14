@@ -163,9 +163,7 @@ startxref
     return pdf_content
 
 
-@pytest.mark.skip(reason="Pipeline execution can hang in CI - test locally only")
-@pytest.mark.asyncio
-async def test_full_pipeline_integration(client, mock_azure_extract, mock_currency_rate):
+def test_full_pipeline_integration(client, mock_azure_extract, mock_currency_rate):
     """Test the full invoice processing pipeline with three tiny invoices."""
 
     # Create three tiny PDF files
@@ -185,8 +183,11 @@ async def test_full_pipeline_integration(client, mock_azure_extract, mock_curren
     assert "job_id" in job_data
     job_id = job_data["job_id"]
 
-    # Just test that job was created successfully - don't wait for completion in CI
+    # Test that job was created successfully
     assert len(job_id) > 0
+
+    # The background pipeline task will run with mocks, but we don't wait for it
+    # This tests the full API contract without hanging
 
 
 def test_pipeline_basic_flow(client, mock_azure_extract, mock_currency_rate):
