@@ -32,6 +32,7 @@ async def run(input: dict) -> dict:
     target_currency = input.get("target_currency") or os.getenv("DEFAULT_TARGET_CURRENCY", "ILS")
 
     files = input.get("files", [])
+    invoices = input.get("invoices", [])
 
     for file_data in files:
         try:
@@ -67,5 +68,26 @@ async def run(input: dict) -> dict:
             # Mark individual file as failed but continue processing others
             file_data["status"] = "failed"
             file_data["error"] = f"Currency conversion failed: {str(e)}"
+
+    # Also apply conversion results to invoices if they exist
+    if invoices:
+        conversion_data = {}
+        for file_data in files:
+            filename = file_data.get("filename")
+            if filename:
+                conversion_data[filename] = {
+                    "converted_total": file_data.get("converted_total"),
+                    "exchange_rate": file_data.get("exchange_rate"),
+                    "status": file_data.get("status", "success"),
+                }
+
+        # Apply conversion results to invoices
+        for invoice in invoices:
+            filename = getattr(invoice, "_filename", "unknown")
+            if filename in conversion_data:
+                conv_data = conversion_data[filename]
+                invoice._converted_amount = conv_data["converted_total"]
+                invoice._exchange_rate = conv_data["exchange_rate"]
+                invoice._conversion_status = conv_data["status"]
 
     return input

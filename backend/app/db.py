@@ -29,6 +29,15 @@ def get_session() -> Session:
         raise
 
 
+def get_db():
+    """Dependency to get database session."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def create_tables():
     """Create all tables."""
     Base.metadata.create_all(bind=engine)
