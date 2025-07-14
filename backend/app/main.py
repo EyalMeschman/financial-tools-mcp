@@ -27,6 +27,8 @@ async def execute_pipeline(job_id: str, files: list[dict], target_currency: str)
         return
 
     try:
+        # Add timeout for CI environments
+        pipeline_timeout = 30  # 30 seconds max for pipeline execution
         # Send initial progress
         await progress_queue.put(
             {
@@ -59,7 +61,7 @@ async def execute_pipeline(job_id: str, files: list[dict], target_currency: str)
             }
         )
 
-        await pipeline.ainvoke(pipeline_input)
+        await asyncio.wait_for(pipeline.ainvoke(pipeline_input), timeout=pipeline_timeout)
 
         await progress_queue.put(
             {
@@ -94,6 +96,11 @@ async def execute_pipeline(job_id: str, files: list[dict], target_currency: str)
             job.processed = len(files)
             db.commit()
 
+    except asyncio.TimeoutError:
+        # Send timeout error
+        await progress_queue.put(
+            {"job_id": job_id, "status": "error", "message": "Pipeline execution timed out"}
+        )
     except Exception as e:
         # Send error
         await progress_queue.put(
