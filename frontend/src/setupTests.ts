@@ -16,21 +16,21 @@ class MockResizeObserver {
   observe = jest.fn();
   unobserve = jest.fn();
   disconnect = jest.fn();
-  constructor(callback: ResizeObserverCallback) {
-    // Store callback for potential use in tests
+  constructor() {
+    // Mock implementation - no callback needed
   }
 }
 
-global.ResizeObserver = MockResizeObserver as any;
+global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
 // Mock IntersectionObserver for Headless UI
 class MockIntersectionObserver {
   observe = jest.fn();
   unobserve = jest.fn();
   disconnect = jest.fn();
-  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
-    // Store callback for potential use in tests
+  constructor() {
+    // Mock implementation - no callback needed
   }
 }
 
-global.IntersectionObserver = MockIntersectionObserver as any;
+global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
