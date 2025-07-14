@@ -31,6 +31,6 @@ async def test_pipeline_execution():
     assert isinstance(result["xlsx"], bytes)
     assert isinstance(result["row_count"], int)
     assert result["row_count"] >= 1  # At least one row (could be ERROR row)
-    
+
     # Check if original input data is preserved (it may not be, which is okay)
     # The Excel node is the final output, so the result structure depends on its implementation
