@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import CurrencySelect from './CurrencySelect';
 
 const mockCurrencies = {
@@ -72,7 +72,9 @@ describe('CurrencySelect', () => {
 
     // Click the dropdown button to open it
     const button = screen.getByTestId('selected-currency-display');
-    fireEvent.click(button.closest('button')!);
+    await act(async () => {
+      fireEvent.click(button.closest('button')!);
+    });
 
     // Wait for dropdown options to appear
     await waitFor(() => {
@@ -80,7 +82,9 @@ describe('CurrencySelect', () => {
     });
 
     // Click on EUR option
-    fireEvent.click(screen.getByTestId('currency-option-EUR'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('currency-option-EUR'));
+    });
 
     // Verify the callback was called with EUR
     expect(mockOnCurrencyChange).toHaveBeenCalledWith('EUR');
@@ -145,7 +149,9 @@ describe('CurrencySelect', () => {
 
     // Click the dropdown button to open it
     const button = screen.getByTestId('selected-currency-display');
-    fireEvent.click(button.closest('button')!);
+    await act(async () => {
+      fireEvent.click(button.closest('button')!);
+    });
 
     await waitFor(() => {
       expect(screen.getByTestId('currency-option-EUR')).toBeInTheDocument();
