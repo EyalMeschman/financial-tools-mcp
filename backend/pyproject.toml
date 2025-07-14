@@ -21,13 +21,13 @@ azure-ai-documentintelligence = "~1.0.0"
 python-dotenv = "^1.0.0"
 httpx = "^0.27.0"
 python-dateutil = "^2.8.2"
+openpyxl = "^3.1.0"
 
 [tool.poetry.group.proto.dependencies]
 # Heavy dependencies for exploratory/proto code
 mcp = "^1.0.0"
 requests = "^2.31.0"
 python-dateutil = "^2.8.2"
-openpyxl = "^3.1.0"
 langchain = "^0.2.0"
 
 [tool.poetry.group.dev.dependencies]

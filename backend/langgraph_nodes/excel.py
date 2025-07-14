@@ -1,13 +1,133 @@
 """Excel node for report generation."""
 
+import re
+from io import BytesIO
 
-async def run(input: dict) -> dict:
-    """Excel node that generates Excel reports.
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
+
+from app.azure_adapter import InvoiceData
+
+
+def invoice_suffix(invoice: InvoiceData, filename: str) -> str:
+    """Extract invoice suffix from filename per spec.
+
+    - Strip non-digits, take last 4, left-pad zeros
+    - If no digits → NO_INV_NUM
 
     Args:
-        input: Input dictionary containing pipeline state
+        invoice: Invoice data (unused in current implementation)
+        filename: Original filename
 
     Returns:
-        dict: Same input dictionary unchanged
+        str: Invoice suffix (4 digits or NO_INV_NUM)
     """
-    return input
+    if not filename:
+        return "NO_INV_NUM"
+
+    # Strip non-digits and extract all digits
+    digits = re.sub(r"\D", "", filename)
+
+    if not digits:
+        return "NO_INV_NUM"
+
+    # Take last 4 digits, left-pad with zeros if needed
+    last_four = digits[-4:]
+    return last_four.zfill(4)
+
+
+async def run(input: dict) -> dict:
+    """Excel node that generates Excel reports from invoice data.
+
+    Args:
+        input: Input dictionary containing 'invoices' key with list of InvoiceData objects
+              and 'target_currency' key
+
+    Returns:
+        dict: Dictionary with 'xlsx' (BytesIO bytes) and 'row_count' keys
+    """
+    invoices: list[InvoiceData] = input.get("invoices", [])
+    target_currency: str = input.get("target_currency", "USD")
+
+    # Create workbook and worksheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Invoices Report"
+
+    # Define headers per spec
+    headers = [
+        "Date (DD/MM/YYYY)",
+        "Invoice Suffix",
+        f"{target_currency} Total Price",
+        "Foreign Currency Total Price",
+        "Foreign Currency Code",
+        "Exchange Rate (4 dp)",
+        "Vendor Name",
+    ]
+
+    # Style headers
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+
+    # Write headers
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+
+    # Write data rows
+    row_num = 2
+    for invoice in invoices:
+        # Extract filename from invoice data (should be stored in invoice)
+        filename = getattr(invoice, "_filename", "")
+
+        # Extract data with error handling per spec
+        date = invoice.InvoiceDate.content if invoice.InvoiceDate else "ERROR"
+        suffix = invoice_suffix(invoice, filename)
+        vendor_name = invoice.VendorName.content if invoice.VendorName else "N/A"
+
+        # Handle amounts and currency
+        target_total = "N/A"
+        foreign_total = "N/A"
+        foreign_currency = "N/A"
+        exchange_rate = "N/A"
+
+        if invoice.InvoiceTotal and invoice.InvoiceTotal.value_currency:
+            foreign_total = invoice.InvoiceTotal.value_currency.amount
+            foreign_currency = invoice.InvoiceTotal.value_currency.currency_code
+            # TODO: These will be populated by currency conversion nodes
+            # target_total = getattr(invoice, '_converted_amount', 'N/A')
+            # exchange_rate = getattr(invoice, '_exchange_rate', 'N/A')
+
+        # Write row data
+        row_data = [date, suffix, target_total, foreign_total, foreign_currency, exchange_rate, vendor_name]
+
+        for col, value in enumerate(row_data, 1):
+            ws.cell(row=row_num, column=col, value=value)
+
+        row_num += 1
+
+    # Add placeholder ERROR rows if no invoices provided
+    if not invoices:
+        error_row = ["ERROR", "filename", "N/A", "N/A", "N/A", "N/A", "N/A"]
+        for col, value in enumerate(error_row, 1):
+            ws.cell(row=2, column=col, value=value)
+        row_num = 3
+
+    # Auto-adjust column widths
+    for col in range(1, len(headers) + 1):
+        column_letter = get_column_letter(col)
+        ws.column_dimensions[column_letter].width = 15
+
+    # Save to BytesIO
+    excel_buffer = BytesIO()
+    wb.save(excel_buffer)
+    excel_buffer.seek(0)
+
+    # Calculate row count (excluding header)
+    data_row_count = max(1, len(invoices)) if invoices else 1
+
+    return {"xlsx": excel_buffer.getvalue(), "row_count": data_row_count}
