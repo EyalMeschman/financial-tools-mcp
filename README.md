@@ -18,7 +18,21 @@ A comprehensive financial tools suite featuring an MCP server for exchange rates
 
 ## Installation
 
-### Option 1: Local Installation
+### Option 1: Docker Quick-Start (Recommended)
+```bash
+# Set required environment variables
+export AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT="https://your-resource.cognitiveservices.azure.com/"
+export AZURE_DOCUMENT_INTELLIGENCE_API_KEY="your-api-key-here"
+
+# Start the application
+docker-compose up --build
+
+# Access the application
+# - Web interface: http://localhost:8080
+# - API health check: http://localhost:8080/health
+```
+
+### Option 2: Local Installation
 ```bash
 # Install with pip
 pip install -e .
