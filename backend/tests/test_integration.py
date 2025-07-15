@@ -55,30 +55,30 @@ def mock_azure_extract():
     # Create mock invoice data for three different invoices
     mock_invoices = [
         InvoiceData(
-            InvoiceId=DefaultContent(content="INV-001"),
-            InvoiceDate=DefaultContent(content="2024-01-15"),
-            VendorName=DefaultContent(content="Acme Corp"),
-            VendorAddressRecipient=DefaultContent(content="123 Business St"),
+            InvoiceId=DefaultContent(content="INV-001", confidence=0.95),
+            InvoiceDate=DefaultContent(content="2024-01-15", confidence=0.92),
+            VendorName=DefaultContent(content="Acme Corp", confidence=0.88),
+            VendorAddressRecipient=DefaultContent(content="123 Business St", confidence=0.85),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=1000.0, currency_code="EUR"), content="€1,000.00"
+                value_currency=ValueCurrency(amount=1000.0, currency_code="EUR"), content="1,000.00", confidence=0.90
             ),
         ),
         InvoiceData(
-            InvoiceId=DefaultContent(content="INV-002"),
-            InvoiceDate=DefaultContent(content="2024-01-16"),
-            VendorName=DefaultContent(content="Tech Solutions"),
-            VendorAddressRecipient=DefaultContent(content="456 Tech Ave"),
+            InvoiceId=DefaultContent(content="INV-002", confidence=0.93),
+            InvoiceDate=DefaultContent(content="2024-01-16", confidence=0.91),
+            VendorName=DefaultContent(content="Tech Solutions", confidence=0.87),
+            VendorAddressRecipient=DefaultContent(content="456 Tech Ave", confidence=0.84),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=500.0, currency_code="GBP"), content="£500.00"
+                value_currency=ValueCurrency(amount=500.0, currency_code="GBP"), content="£500.00", confidence=0.89
             ),
         ),
         InvoiceData(
-            InvoiceId=DefaultContent(content="INV-003"),
-            InvoiceDate=DefaultContent(content="2024-01-17"),
-            VendorName=DefaultContent(content="Service Provider"),
-            VendorAddressRecipient=DefaultContent(content="789 Service Blvd"),
+            InvoiceId=DefaultContent(content="INV-003", confidence=0.94),
+            InvoiceDate=DefaultContent(content="2024-01-17", confidence=0.90),
+            VendorName=DefaultContent(content="Service Provider", confidence=0.86),
+            VendorAddressRecipient=DefaultContent(content="789 Service Blvd", confidence=0.83),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=750.0, currency_code="USD"), content="$750.00"
+                value_currency=ValueCurrency(amount=750.0, currency_code="USD"), content="750.00", confidence=0.91
             ),
         ),
     ]

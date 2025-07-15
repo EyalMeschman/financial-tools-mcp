@@ -71,8 +71,7 @@ async def execute_pipeline(job_id: str, files: list[dict], target_currency: str)
             }
         )
 
-        result = await asyncio.wait_for(pipeline.ainvoke(pipeline_input), timeout=pipeline_timeout)
-        print(f"Pipeline result: {result}")  # Debug logging
+        await asyncio.wait_for(pipeline.ainvoke(pipeline_input), timeout=pipeline_timeout)
 
         await progress_queue.put(
             {
