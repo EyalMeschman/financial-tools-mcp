@@ -10,27 +10,27 @@ from openpyxl.utils import get_column_letter
 from app.azure_adapter import InvoiceData
 
 
-def invoice_suffix(invoice: InvoiceData, filename: str) -> str:
+def invoice_suffix(invoice: InvoiceData) -> str:
     """Extract invoice suffix from filename per spec.
 
     - Strip non-digits, take last 4, left-pad zeros
-    - If no digits → NO_INV_NUM
+    - If no digits → SUFFIX_NOT_FOUND
 
     Args:
         invoice: Invoice data (unused in current implementation)
         filename: Original filename
 
     Returns:
-        str: Invoice suffix (4 digits or NO_INV_NUM)
+        str: Invoice suffix (4 digits or SUFFIX_NOT_FOUND)
     """
-    if not filename:
-        return "NO_INV_NUM"
+    if not invoice.InvoiceId or not invoice.InvoiceId.content:
+        return "SUFFIX_NOT_FOUND"
 
     # Strip non-digits and extract all digits
-    digits = re.sub(r"\D", "", filename)
+    digits = re.sub(r"\D", "", invoice.InvoiceId.content)
 
     if not digits:
-        return "NO_INV_NUM"
+        return "SUFFIX_NOT_FOUND"
 
     # Take last 4 digits, left-pad with zeros if needed
     last_four = digits[-4:]
@@ -86,26 +86,37 @@ async def run(input: dict) -> dict:
 
         # Extract data with error handling per spec
         date = invoice.InvoiceDate.content if invoice.InvoiceDate else "ERROR"
-        suffix = invoice_suffix(invoice, filename)
+        suffix = invoice_suffix(invoice)
         vendor_name = invoice.VendorName.content if invoice.VendorName else "N/A"
 
         # Handle amounts and currency
         target_total = "N/A"
-        foreign_total = "N/A"
-        foreign_currency = "N/A"
-        exchange_rate = "N/A"
+        foreign_total = ""
+        foreign_currency = ""
+        exchange_rate = ""
 
         if invoice.InvoiceTotal and invoice.InvoiceTotal.value_currency:
-            foreign_total = invoice.InvoiceTotal.value_currency.amount
-            foreign_currency = invoice.InvoiceTotal.value_currency.currency_code
+            invoice_currency = invoice.InvoiceTotal.value_currency.currency_code
+            invoice_amount = invoice.InvoiceTotal.value_currency.amount
 
-            # Use converted amounts if available
-            target_total = getattr(invoice, "_converted_amount", "N/A")
-            exchange_rate = getattr(invoice, "_exchange_rate", "N/A")
+            if invoice_currency == target_currency:
+                # Case 1: Same currency - use invoice amount directly, leave foreign fields empty
+                target_total = invoice_amount
+                foreign_total = ""
+                foreign_currency = ""
+                exchange_rate = ""
+            else:
+                # Case 2: Different currency - fill all foreign fields
+                foreign_total = invoice_amount
+                foreign_currency = invoice_currency
 
-            # Format exchange rate to 4 decimal places if it's a number
-            if isinstance(exchange_rate, int | float):
-                exchange_rate = f"{exchange_rate:.4f}"
+                # Use converted amounts if available
+                target_total = getattr(invoice, "_converted_amount", "N/A")
+                exchange_rate = getattr(invoice, "_exchange_rate", "N/A")
+
+                # Format exchange rate to 4 decimal places if it's a number
+                if isinstance(exchange_rate, int | float):
+                    exchange_rate = f"{exchange_rate:.4f}"
 
         # Write row data
         row_data = [date, suffix, target_total, foreign_total, foreign_currency, exchange_rate, vendor_name]
@@ -117,7 +128,7 @@ async def run(input: dict) -> dict:
 
     # Add placeholder ERROR rows if no invoices provided
     if not invoices:
-        error_row = ["ERROR", "filename", "N/A", "N/A", "N/A", "N/A", "N/A"]
+        error_row = ["ERROR", filename, "N/A", "N/A", "N/A", "N/A", "N/A"]
         for col, value in enumerate(error_row, 1):
             ws.cell(row=2, column=col, value=value)
         row_num = 3

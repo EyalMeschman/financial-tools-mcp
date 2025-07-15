@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Confidence threshold for accepting extracted data
+CONFIDENCE_THRESHOLD = 0.8
+LOW_CONFIDENCE_PLACEHOLDER = "CONFIDENCE_TOO_LOW"
+
 
 # Robust internal dataclasses (preserving original structure)
 @dataclass
@@ -17,6 +21,7 @@ class DefaultContent:
     """Text content with optional confidence."""
 
     content: str
+    confidence: float
 
 
 @dataclass
@@ -33,6 +38,7 @@ class InvoiceTotal:
 
     value_currency: ValueCurrency | None
     content: str
+    confidence: float
 
 
 @dataclass
@@ -95,6 +101,7 @@ async def extract_invoice(path: str) -> InvoiceData | None:
 
             # Analyze document using prebuilt invoice model
             poller = await client.begin_analyze_document("prebuilt-invoice", file_data, content_type="application/pdf")
+            # poller = await client.begin_analyze_document("prebuilt-receipt", file_data, content_type="application/pdf")
 
             result = await poller.result()
 
@@ -120,41 +127,57 @@ def _extract_from_azure_response(azure_result) -> InvoiceData | None:
     invoice_date = None
     if "InvoiceDate" in fields and fields["InvoiceDate"]:
         content = getattr(fields["InvoiceDate"], "content", "")
+        confidence = getattr(fields["InvoiceDate"], "confidence", 0.0)
         if content:
-            invoice_date = DefaultContent(content=content)
+            invoice_date = DefaultContent(content=LOW_CONFIDENCE_PLACEHOLDER, confidence=confidence)
+            if confidence > CONFIDENCE_THRESHOLD:
+                invoice_date = DefaultContent(content=content, confidence=confidence)
 
     invoice_id = None
     if "InvoiceId" in fields and fields["InvoiceId"]:
         content = getattr(fields["InvoiceId"], "content", "")
+        confidence = getattr(fields["InvoiceId"], "confidence", 0.0)
         if content:
-            invoice_id = DefaultContent(content=content)
+            invoice_id = DefaultContent(content=LOW_CONFIDENCE_PLACEHOLDER, confidence=confidence)
+            if confidence > CONFIDENCE_THRESHOLD:
+                invoice_id = DefaultContent(content=content, confidence=confidence)
 
     invoice_total = None
     if "InvoiceTotal" in fields and fields["InvoiceTotal"]:
-        total_field = fields["InvoiceTotal"]
+        total_field: InvoiceTotal = fields["InvoiceTotal"]
         content = getattr(total_field, "content", "")
-
-        value_currency = None
-        if hasattr(total_field, "value_currency") and total_field.value_currency:
-            amount = getattr(total_field.value_currency, "amount", 0.0)
-            currency_code = getattr(total_field.value_currency, "currency_code", "")
-            if amount or currency_code:
-                value_currency = ValueCurrency(amount=amount, currency_code=currency_code)
-
-        if content or value_currency:
-            invoice_total = InvoiceTotal(value_currency=value_currency, content=content)
+        confidence = getattr(total_field, "confidence", 0.0)
+        if content or (hasattr(total_field, "value_currency") and total_field.value_currency):
+            value_currency = ValueCurrency(amount=0.0, currency_code=LOW_CONFIDENCE_PLACEHOLDER)
+            invoice_total = InvoiceTotal(
+                value_currency=value_currency, content=LOW_CONFIDENCE_PLACEHOLDER, confidence=confidence
+            )
+            if confidence > CONFIDENCE_THRESHOLD:
+                value_currency = None
+                if hasattr(total_field, "value_currency") and total_field.value_currency:
+                    amount = getattr(total_field.value_currency, "amount", 0.0)
+                    currency_code = getattr(total_field.value_currency, "currency_code", "")
+                    if amount or currency_code:
+                        value_currency = ValueCurrency(amount=amount, currency_code=currency_code)
+                invoice_total = InvoiceTotal(value_currency=value_currency, content=content, confidence=confidence)
 
     vendor_name = None
     if "VendorName" in fields and fields["VendorName"]:
         content = getattr(fields["VendorName"], "content", "")
+        confidence = getattr(fields["VendorName"], "confidence", 0.0)
         if content:
-            vendor_name = DefaultContent(content=content)
+            vendor_name = DefaultContent(content=LOW_CONFIDENCE_PLACEHOLDER, confidence=confidence)
+            if confidence > CONFIDENCE_THRESHOLD:
+                vendor_name = DefaultContent(content=content, confidence=confidence)
 
     vendor_address = None
-    if "VendorAddressRecipient" in fields and fields["VendorAddressRecipient"]:
+    if not vendor_name and "VendorAddressRecipient" in fields and fields["VendorAddressRecipient"]:
         content = getattr(fields["VendorAddressRecipient"], "content", "")
+        confidence = getattr(fields["VendorAddressRecipient"], "confidence", 0.0)
         if content:
-            vendor_address = DefaultContent(content=content)
+            vendor_address = DefaultContent(content=LOW_CONFIDENCE_PLACEHOLDER, confidence=confidence)
+            if confidence > CONFIDENCE_THRESHOLD:
+                vendor_address = DefaultContent(content=content, confidence=confidence)
 
     return InvoiceData(
         InvoiceDate=invoice_date,

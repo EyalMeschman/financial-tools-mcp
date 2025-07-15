@@ -19,22 +19,31 @@ class TestExcelNode:
     def test_invoice_suffix_helper(self):
         """Test the invoice_suffix helper function per spec."""
         # Test with digits - take last 4, left-pad zeros
-        assert excel.invoice_suffix(None, "invoice_123.pdf") == "0123"
-        assert excel.invoice_suffix(None, "test_file_456789.xlsx") == "6789"
-        assert excel.invoice_suffix(None, "doc_12.pdf") == "0012"
-        assert excel.invoice_suffix(None, "file_1.txt") == "0001"
+        mock_invoice = InvoiceData(
+            InvoiceId=DefaultContent(content="INV-123", confidence=0.95),
+            InvoiceDate=None,
+            VendorName=None,
+            VendorAddressRecipient=None,
+            InvoiceTotal=None,
+        )
+        assert excel.invoice_suffix(mock_invoice) == "0123"
+
+        mock_invoice.InvoiceId.content = "456789"
+        assert excel.invoice_suffix(mock_invoice) == "6789"
+
+        mock_invoice.InvoiceId.content = "INV-2024-001"
+        assert excel.invoice_suffix(mock_invoice) == "4001"
 
         # Test with no digits
-        assert excel.invoice_suffix(None, "invoice.pdf") == "NO_INV_NUM"
-        assert excel.invoice_suffix(None, "test_file.xlsx") == "NO_INV_NUM"
+        mock_invoice.InvoiceId.content = "INV-NO-DIGITS"
+        assert excel.invoice_suffix(mock_invoice) == "SUFFIX_NOT_FOUND"
 
-        # Test empty/None filename
-        assert excel.invoice_suffix(None, "") == "NO_INV_NUM"
-        assert excel.invoice_suffix(None, None) == "NO_INV_NUM"
+        # Test empty/None InvoiceId
+        mock_invoice.InvoiceId.content = ""
+        assert excel.invoice_suffix(mock_invoice) == "SUFFIX_NOT_FOUND"
 
-        # Test mixed characters
-        assert excel.invoice_suffix(None, "abc123def456") == "3456"
-        assert excel.invoice_suffix(None, "inv-2024-001.pdf") == "4001"
+        mock_invoice.InvoiceId = None
+        assert excel.invoice_suffix(mock_invoice) == "SUFFIX_NOT_FOUND"
 
     @pytest.mark.asyncio
     async def test_run_with_empty_invoices(self):
@@ -67,7 +76,7 @@ class TestExcelNode:
             assert ws.cell(row=1, column=col).value == expected_header
 
         # Check ERROR row per spec
-        expected_error_row = ["ERROR", "filename", "N/A", "N/A", "N/A", "N/A", "N/A"]
+        expected_error_row = ["ERROR", "No invoices found", "N/A", "N/A", "N/A", "N/A", "N/A"]
         for col, expected_value in enumerate(expected_error_row, 1):
             assert ws.cell(row=2, column=col).value == expected_value
 
@@ -76,12 +85,12 @@ class TestExcelNode:
         """Test run function with a complete invoice."""
         # Create test invoice data
         invoice = InvoiceData(
-            InvoiceId=DefaultContent(content="INV-001"),
-            InvoiceDate=DefaultContent(content="2024-01-15"),
-            VendorName=DefaultContent(content="Acme Corp"),
-            VendorAddressRecipient=DefaultContent(content="123 Business St"),
+            InvoiceId=DefaultContent(content="INV-001", confidence=0.95),
+            InvoiceDate=DefaultContent(content="2024-01-15", confidence=0.95),
+            VendorName=DefaultContent(content="Acme Corp", confidence=0.95),
+            VendorAddressRecipient=DefaultContent(content="123 Business St", confidence=0.95),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=1234.56, currency_code="EUR"), content="€1,234.56"
+                value_currency=ValueCurrency(amount=1234.56, currency_code="EUR"), content="1,234.56", confidence=0.95
             ),
         )
 
@@ -102,9 +111,9 @@ class TestExcelNode:
         wb = load_workbook(excel_data)
         ws = wb.active
 
-        # Check data row per spec
+        # Check data row per spec (different currency: EUR vs USD)
         assert ws.cell(row=2, column=1).value == "2024-01-15"  # Date
-        assert ws.cell(row=2, column=2).value == "0001"  # Invoice Suffix
+        assert ws.cell(row=2, column=2).value == "0001"  # Invoice Suffix (from InvoiceId)
         assert ws.cell(row=2, column=3).value == "N/A"  # USD Total Price (not converted yet)
         assert ws.cell(row=2, column=4).value == 1234.56  # Foreign Currency Total Price
         assert ws.cell(row=2, column=5).value == "EUR"  # Foreign Currency Code
@@ -116,9 +125,9 @@ class TestExcelNode:
         """Test run function with partial invoice data (missing fields)."""
         # Create invoice with missing fields
         invoice = InvoiceData(
-            InvoiceId=DefaultContent(content="INV-002"),
+            InvoiceId=DefaultContent(content="INV-002", confidence=0.95),
             InvoiceDate=None,  # Missing date
-            VendorName=DefaultContent(content="Test Vendor"),
+            VendorName=DefaultContent(content="Test Vendor", confidence=0.95),
             VendorAddressRecipient=None,  # Missing address
             InvoiceTotal=None,  # Missing total
         )
@@ -135,11 +144,11 @@ class TestExcelNode:
 
         # Check data row with ERROR/N/A placeholders per spec
         assert ws.cell(row=2, column=1).value == "ERROR"  # Date (missing)
-        assert ws.cell(row=2, column=2).value == "NO_INV_NUM"  # Invoice Suffix (no digits)
+        assert ws.cell(row=2, column=2).value == "0002"  # Invoice Suffix (from InvoiceId)
         assert ws.cell(row=2, column=3).value == "N/A"  # GBP Total Price (missing)
-        assert ws.cell(row=2, column=4).value == "N/A"  # Foreign Currency Total Price (missing)
-        assert ws.cell(row=2, column=5).value == "N/A"  # Foreign Currency Code (missing)
-        assert ws.cell(row=2, column=6).value == "N/A"  # Exchange Rate (missing)
+        assert ws.cell(row=2, column=4).value in ["", None]  # Foreign Currency Total Price (missing)
+        assert ws.cell(row=2, column=5).value in ["", None]  # Foreign Currency Code (missing)
+        assert ws.cell(row=2, column=6).value in ["", None]  # Exchange Rate (missing)
         assert ws.cell(row=2, column=7).value == "Test Vendor"  # Vendor Name
 
     @pytest.mark.asyncio
@@ -147,23 +156,23 @@ class TestExcelNode:
         """Test run function with multiple invoices."""
         # Create multiple test invoices
         invoice1 = InvoiceData(
-            InvoiceId=DefaultContent(content="INV-001"),
-            InvoiceDate=DefaultContent(content="2024-01-15"),
-            VendorName=DefaultContent(content="Vendor A"),
-            VendorAddressRecipient=DefaultContent(content="Address A"),
+            InvoiceId=DefaultContent(content="INV-001", confidence=0.95),
+            InvoiceDate=DefaultContent(content="2024-01-15", confidence=0.95),
+            VendorName=DefaultContent(content="Vendor A", confidence=0.95),
+            VendorAddressRecipient=DefaultContent(content="Address A", confidence=0.95),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=100.0, currency_code="USD"), content="$100.00"
+                value_currency=ValueCurrency(amount=100.0, currency_code="USD"), content="100.00", confidence=0.95
             ),
         )
         invoice1._filename = "invoice_123.pdf"
 
         invoice2 = InvoiceData(
-            InvoiceId=DefaultContent(content="INV-002"),
-            InvoiceDate=DefaultContent(content="2024-01-16"),
-            VendorName=DefaultContent(content="Vendor B"),
-            VendorAddressRecipient=DefaultContent(content="Address B"),
+            InvoiceId=DefaultContent(content="INV-002", confidence=0.95),
+            InvoiceDate=DefaultContent(content="2024-01-16", confidence=0.95),
+            VendorName=DefaultContent(content="Vendor B", confidence=0.95),
+            VendorAddressRecipient=DefaultContent(content="Address B", confidence=0.95),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=200.0, currency_code="EUR"), content="€200.00"
+                value_currency=ValueCurrency(amount=200.0, currency_code="EUR"), content="200.00", confidence=0.95
             ),
         )
         invoice2._filename = "invoice_456.pdf"
@@ -180,13 +189,13 @@ class TestExcelNode:
 
         # Check first invoice
         assert ws.cell(row=2, column=1).value == "2024-01-15"  # Date
-        assert ws.cell(row=2, column=2).value == "0123"  # Invoice Suffix
+        assert ws.cell(row=2, column=2).value == "0001"  # Invoice Suffix
         assert ws.cell(row=2, column=5).value == "USD"  # Foreign Currency Code
         assert ws.cell(row=2, column=7).value == "Vendor A"  # Vendor Name
 
         # Check second invoice
         assert ws.cell(row=3, column=1).value == "2024-01-16"  # Date
-        assert ws.cell(row=3, column=2).value == "0456"  # Invoice Suffix
+        assert ws.cell(row=3, column=2).value == "0002"  # Invoice Suffix
         assert ws.cell(row=3, column=5).value == "EUR"  # Foreign Currency Code
         assert ws.cell(row=3, column=7).value == "Vendor B"  # Vendor Name
 
@@ -194,12 +203,12 @@ class TestExcelNode:
     async def test_excel_formatting(self):
         """Test that Excel file has proper formatting."""
         invoice = InvoiceData(
-            InvoiceId=DefaultContent(content="INV-001"),
-            InvoiceDate=DefaultContent(content="2024-01-15"),
-            VendorName=DefaultContent(content="Test Vendor"),
-            VendorAddressRecipient=DefaultContent(content="Test Address"),
+            InvoiceId=DefaultContent(content="INV-001", confidence=0.95),
+            InvoiceDate=DefaultContent(content="2024-01-15", confidence=0.95),
+            VendorName=DefaultContent(content="Test Vendor", confidence=0.95),
+            VendorAddressRecipient=DefaultContent(content="Test Address", confidence=0.95),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=100.0, currency_code="USD"), content="$100.00"
+                value_currency=ValueCurrency(amount=100.0, currency_code="USD"), content="100.00", confidence=0.95
             ),
         )
         invoice._filename = "test_123.pdf"

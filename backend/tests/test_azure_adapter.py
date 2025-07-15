@@ -25,13 +25,13 @@ class TestDataClasses:
     def test_invoice_data_creation(self):
         """Test InvoiceData creation with robust structure."""
         invoice_data = InvoiceData(
-            InvoiceDate=DefaultContent("2025-01-15"),
-            InvoiceId=DefaultContent("INV-12345"),
+            InvoiceDate=DefaultContent("2025-01-15", 0.95),
+            InvoiceId=DefaultContent("INV-12345", 0.90),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="$914.50"
+                value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="914.50", confidence=0.92
             ),
-            VendorName=DefaultContent("Test Company Inc."),
-            VendorAddressRecipient=DefaultContent("123 Main St"),
+            VendorName=DefaultContent("Test Company Inc.", 0.88),
+            VendorAddressRecipient=DefaultContent("123 Main St", 0.85),
         )
 
         assert invoice_data.InvoiceDate.content == "2025-01-15"
@@ -73,6 +73,7 @@ class TestExtractFromAzureResponse:
         # Mock Azure response structure
         mock_date_field = Mock()
         mock_date_field.content = "2025-01-15"
+        mock_date_field.confidence = 0.95
 
         mock_total_field = Mock()
         mock_value_currency = Mock()
@@ -80,9 +81,11 @@ class TestExtractFromAzureResponse:
         mock_value_currency.currency_code = "USD"
         mock_total_field.value_currency = mock_value_currency
         mock_total_field.content = "$914.50"
+        mock_total_field.confidence = 0.92
 
         mock_vendor_field = Mock()
         mock_vendor_field.content = "Test Company Inc."
+        mock_vendor_field.confidence = 0.88
 
         mock_fields = {
             "InvoiceDate": mock_date_field,
@@ -137,6 +140,7 @@ class TestExtractFromAzureResponse:
         """Test vendor extraction fallback to VendorAddressRecipient."""
         mock_address_field = Mock()
         mock_address_field.content = "ABC Corp, 123 Main St"
+        mock_address_field.confidence = 0.85
 
         mock_fields = {
             "VendorAddressRecipient": mock_address_field,
@@ -161,13 +165,13 @@ class TestConversionHelpers:
     def test_to_simple_format_complete(self):
         """Test conversion from full to simple format with all fields."""
         full_data = InvoiceData(
-            InvoiceDate=DefaultContent("2025-01-15"),
-            InvoiceId=DefaultContent("INV-12345"),
+            InvoiceDate=DefaultContent("2025-01-15", 0.95),
+            InvoiceId=DefaultContent("INV-12345", 0.90),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="$914.50"
+                value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="914.50", confidence=0.92
             ),
-            VendorName=DefaultContent("Test Company Inc."),
-            VendorAddressRecipient=DefaultContent("123 Main St"),
+            VendorName=DefaultContent("Test Company Inc.", 0.88),
+            VendorAddressRecipient=DefaultContent("123 Main St", 0.85),
         )
 
         result = to_simple_format(full_data, "test_invoice.pdf")
@@ -185,7 +189,7 @@ class TestConversionHelpers:
             InvoiceId=None,
             InvoiceTotal=None,
             VendorName=None,
-            VendorAddressRecipient=DefaultContent("ABC Corp, 123 Main St"),
+            VendorAddressRecipient=DefaultContent("ABC Corp, 123 Main St", 0.85),
         )
 
         result = to_simple_format(full_data, "test_invoice.pdf")
@@ -278,6 +282,7 @@ class TestExtractInvoice:
             # Mock successful Azure response
             mock_date_field = Mock()
             mock_date_field.content = "2025-01-15"
+            mock_date_field.confidence = 0.95
 
             mock_total_field = Mock()
             mock_value_currency = Mock()
@@ -285,9 +290,11 @@ class TestExtractInvoice:
             mock_value_currency.currency_code = "USD"
             mock_total_field.value_currency = mock_value_currency
             mock_total_field.content = "$914.50"
+            mock_total_field.confidence = 0.92
 
             mock_vendor_field = Mock()
             mock_vendor_field.content = "Test Company Inc."
+            mock_vendor_field.confidence = 0.88
 
             mock_fields = {
                 "InvoiceDate": mock_date_field,
@@ -353,12 +360,12 @@ class TestExtractInvoice:
         """Test successful simple extraction."""
         # Mock full extraction result
         full_data = InvoiceData(
-            InvoiceDate=DefaultContent("2025-01-15"),
-            InvoiceId=DefaultContent("INV-12345"),
+            InvoiceDate=DefaultContent("2025-01-15", 0.95),
+            InvoiceId=DefaultContent("INV-12345", 0.90),
             InvoiceTotal=InvoiceTotal(
-                value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="$914.50"
+                value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="914.50", confidence=0.92
             ),
-            VendorName=DefaultContent("Test Company Inc."),
+            VendorName=DefaultContent("Test Company Inc.", 0.88),
             VendorAddressRecipient=None,
         )
         mock_extract.return_value = full_data

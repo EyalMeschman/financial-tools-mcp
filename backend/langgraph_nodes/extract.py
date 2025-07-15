@@ -34,6 +34,7 @@ async def run(input: dict) -> dict:
                     # Update file status
                     file_info["status"] = "extracted"
                     print(f"Successfully extracted invoice data for {filename}")  # Debug
+                    print(f"Invoice: {invoice_data}")  # Debug
                 else:
                     # Extraction failed
                     file_info["status"] = "failed"

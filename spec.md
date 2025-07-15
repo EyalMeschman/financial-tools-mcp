@@ -128,7 +128,7 @@ AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_ID   # optional quota check
 ### Invoice Suffix Extraction
 
 - Strip non-digits, take last 4, left-pad zeros
-- If no digits → `NO_INV_NUM`
+- If no digits → `SUFFIX_NOT_FOUND`
 
 ### Placeholder Error Row
 
@@ -196,7 +196,7 @@ CREATE TABLE files (
 
 - **Unit tests** per LangGraph node (pytest + hypothesis)
 - **Integration test**: end-to-end batch with 3 mock invoices (2 OK, 1 error)
-- **Edge cases**: missing date, missing total, NO_INV_NUM, 3 Frankfurter errors
+- **Edge cases**: missing date, missing total, SUFFIX_NOT_FOUND, 3 Frankfurter errors
 
 ### Frontend
 
