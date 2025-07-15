@@ -80,6 +80,7 @@ async def run(input: dict) -> dict:
 
     # Write data rows
     row_num = 2
+    filename = ""  # Initialize filename for empty invoices case
     for invoice in invoices:
         # Extract filename from invoice data (should be stored in invoice)
         filename = getattr(invoice, "_filename", "")

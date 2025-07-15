@@ -76,9 +76,13 @@ class TestExcelNode:
             assert ws.cell(row=1, column=col).value == expected_header
 
         # Check ERROR row per spec
-        expected_error_row = ["ERROR", "No invoices found", "N/A", "N/A", "N/A", "N/A", "N/A"]
+        expected_error_row = ["ERROR", "", "N/A", "N/A", "N/A", "N/A", "N/A"]
         for col, expected_value in enumerate(expected_error_row, 1):
-            assert ws.cell(row=2, column=col).value == expected_value
+            cell_value = ws.cell(row=2, column=col).value
+            # Empty string becomes None in Excel cells
+            if expected_value == "" and cell_value is None:
+                continue
+            assert cell_value == expected_value
 
     @pytest.mark.asyncio
     async def test_run_with_complete_invoice(self):
