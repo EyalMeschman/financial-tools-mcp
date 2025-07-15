@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copy frontend package files
 COPY frontend/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy frontend source
 COPY frontend/ ./
@@ -31,7 +31,7 @@ COPY backend/pyproject.toml backend/poetry.lock* backend/poetry.toml ./
 # Install Poetry and dependencies
 RUN pip install poetry && \
     poetry config virtualenvs.create false && \
-    poetry install --only=main --no-interaction --no-ansi
+    poetry install --without dev,proto --no-interaction --no-ansi --no-root
 
 # Copy backend application code
 COPY backend/app/ ./app/

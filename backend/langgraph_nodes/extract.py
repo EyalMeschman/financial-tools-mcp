@@ -21,8 +21,10 @@ async def run(input: dict) -> dict:
             filename = file_info["filename"]
 
             try:
+                print(f"Starting Azure extraction for {filename} at {file_path}")  # Debug
                 # Extract invoice data using Azure adapter
                 invoice_data = await extract_invoice(file_path)
+                print(f"Azure extraction result for {filename}: {invoice_data is not None}")  # Debug
 
                 if invoice_data:
                     # Add filename to invoice data for reference
@@ -31,13 +33,16 @@ async def run(input: dict) -> dict:
 
                     # Update file status
                     file_info["status"] = "extracted"
+                    print(f"Successfully extracted invoice data for {filename}")  # Debug
                 else:
                     # Extraction failed
                     file_info["status"] = "failed"
                     file_info["error_message"] = "Failed to extract invoice data"
+                    print(f"Azure extraction returned None for {filename}")  # Debug
 
             except Exception as e:
                 # Handle extraction errors
+                print(f"Azure extraction failed for {filename}: {e}")  # Debug logging
                 file_info["status"] = "failed"
                 file_info["error_message"] = str(e)
 
