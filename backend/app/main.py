@@ -239,7 +239,7 @@ async def serve_frontend():
     """Serve the frontend application."""
     static_path = Path("static")
     index_path = static_path / "index.html"
-    
+
     if index_path.exists():
         return FileResponse(index_path)
     else:

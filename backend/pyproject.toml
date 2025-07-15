@@ -26,7 +26,6 @@ python-multipart = "^0.0.6"
 
 [tool.poetry.group.proto.dependencies]
 # Heavy dependencies for exploratory/proto code
-mcp = "^1.0.0"
 requests = "^2.31.0"
 python-dateutil = "^2.8.2"
 langchain = "^0.2.0"
