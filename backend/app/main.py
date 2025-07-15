@@ -8,6 +8,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -16,6 +17,11 @@ from app.models import Job
 from langgraph_nodes.pipeline import get_compiled_pipeline
 
 app = FastAPI(title="Invoice Converter API")
+
+# Mount static files (frontend)
+static_path = Path("static")
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # In-memory progress storage for SSE
 progress_queues: dict[str, asyncio.Queue] = {}
@@ -226,3 +232,15 @@ async def download_report(job_id: str):
 def health_check():
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+@app.get("/")
+async def serve_frontend():
+    """Serve the frontend application."""
+    static_path = Path("static")
+    index_path = static_path / "index.html"
+
+    if index_path.exists():
+        return FileResponse(index_path)
+    else:
+        return {"message": "Frontend not available. API is running at /health"}

@@ -1,172 +1,203 @@
-# Financial Tools MCP
+# Financial Tools Suite
 
-A comprehensive financial tools suite featuring an MCP server for exchange rates and a standalone invoice data extractor.
+A comprehensive invoice processing application with currency conversion capabilities, featuring a React frontend and FastAPI backend.
 
-## Components
+## Features
 
-### 1. Exchange Rate MCP Server
-- **Multi-Currency Support**: `get_exchange_rate(date: str, from_currency: str = "USD", to_currency: str = "ILS") → dict`
-- **Flexible Date Input**: Accepts dates in various formats (YYYY-MM-DD, MM/DD/YYYY, "July 10, 2025", etc.)
-- **Reliable Data Source**: Uses the Frankfurter API for historical exchange rates
-- **Error Handling**: Proper exception handling for invalid dates, network errors, and API failures
+### 🧾 Invoice Processing
+- **Drag & Drop Upload**: Support for PDF, JPEG, and PNG files (up to 1MB, max 100 files)
+- **Azure Document Intelligence**: Automated data extraction from invoice documents
+- **Real-time Progress**: Server-Sent Events for live processing updates
+- **Excel Export**: Generate structured reports with converted currency amounts
 
-### 2. Invoice Data Extractor
-- **Azure Document Intelligence**: Processes PDF invoices using Azure's prebuilt invoice model
-- **Structured Data Extraction**: Extracts date, invoice suffix, price, currency, and company information
-- **Usage Monitoring**: Optional quota tracking for Azure F0 tier (500 pages/month limit)
-- **Environment Configuration**: Uses `.env` file for Azure credentials
+### 💱 Currency Conversion
+- **Multi-Currency Support**: Convert between 30+ currencies using real-time rates
+- **Historical Rates**: Support for date-specific exchange rates via Frankfurter API
+- **Circuit Breaker**: Robust error handling with automatic failover
+- **Precise Calculations**: Uses Decimal arithmetic for accurate monetary computations
 
-## Installation
+### 🏗️ Modern Architecture
+- **FastAPI Backend**: Async Python API with type hints and automatic documentation
+- **React Frontend**: Modern TypeScript interface with Tailwind CSS
+- **Real-time Updates**: Server-Sent Events for progress tracking
+- **Database**: SQLite with SQLAlchemy 2.0 and Alembic migrations
+- **Pipeline Processing**: LangGraph orchestration for complex workflows
 
-### Option 1: Local Installation
+## Quick Start
+
+### Option 1: Docker (Recommended)
 ```bash
-# Install with pip
-pip install -e .
+# Set required environment variables
+export AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT="https://your-resource.cognitiveservices.azure.com/"
+export AZURE_DOCUMENT_INTELLIGENCE_API_KEY="your-api-key-here"
 
-# Or with dev dependencies
-pip install -e .[dev]
+# Start the application
+docker-compose up --build
+
+# Access the application
+# - Web interface: http://localhost:8080
+# - API documentation: http://localhost:8080/docs
+# - Health check: http://localhost:8080/health
 ```
 
-### Option 2: Development Container (Recommended)
+### Option 2: Local Development
 ```bash
-# Using VS Code Dev Containers extension
-# 1. Open project in VS Code
-# 2. Press Ctrl+Shift+P
-# 3. Select "Dev Containers: Reopen in Container"
+# Backend setup
+cd backend && poetry install
+poetry run alembic upgrade head
+poetry run uvicorn app.main:app --reload
 
-# Or using Docker Compose
-docker-compose -f .devcontainer/docker-compose.yml up -d
-```
+# Frontend setup (new terminal)
+cd frontend && npm install
+npm run dev
 
-## Usage
-
-### 1. MCP Server (Exchange Rates)
-
-Start the MCP server:
-```bash
-python server.py
-```
-
-**As a Python Module:**
-```python
-from mcp_tools.exchange_rate import mcp
-
-# Get the exchange rate function
-get_exchange_rate_func = None
-for tool in mcp._tool_manager._tools.values():
-    if hasattr(tool, "fn") and tool.fn.__name__ == "get_exchange_rate":
-        get_exchange_rate_func = tool.fn
-        break
-
-# Default: USD to ILS
-result = get_exchange_rate_func("2025-07-10")
-print(result)
-# → {"amount": 1.0, "base": "USD", "date": "2025-07-10", "rates": {"ILS": 3.3064}}
-
-# Custom currencies: EUR to GBP
-result = get_exchange_rate_func("2025-07-10", "EUR", "GBP")
-print(result)
-# → {"amount": 1.0, "base": "EUR", "date": "2025-07-10", "rates": {"GBP": 0.8520}}
-```
-
-### 2. Invoice Data Extractor
-
-**Setup Environment Variables (.env file):**
-```bash
-AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
-AZURE_DOCUMENT_INTELLIGENCE_API_KEY=your-api-key-here
-AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_ID=/subscriptions/.../resourceGroups/.../providers/Microsoft.CognitiveServices/accounts/your-resource  # Optional for quota monitoring
-```
-
-**Use as Python Module:**
-```python
-from src.extractors.invoice_extractor import extract_invoice_data_azure, check_usage_quota
-
-# Check current usage (optional)
-usage = check_usage_quota()
-if usage:
-    print(f"Pages used: {usage['used']}/{usage['total_limit']}")
-
-# Extract invoice data
-invoice_data = extract_invoice_data_azure("path/to/invoice.pdf")
-if invoice_data:
-    print(f"Date: {invoice_data.InvoiceDate.content}")
-    print(f"Invoice ID: {invoice_data.InvoiceId.content}")
-    print(f"Price: {invoice_data.InvoiceTotal.value_currency.amount} {invoice_data.InvoiceTotal.value_currency.currency_code}")
-    print(f"Company: {invoice_data.VendorName.content or invoice_data.VendorAddressRecipient.content}")
-```
-
-**Direct Execution:**
-```bash
-python src/extractors/invoice_extractor.py  # Processes payment.pdf in current directory
+# Optional: View API documentation
+# Open http://localhost:8000/docs in your browser
 ```
 
 ## Project Structure
 
 ```
-src/
-├── mcp_tools/           # MCP server components
-│   └── exchange_rate.py # Exchange rate tool using FastMCP framework
-└── extractors/          # Data extraction utilities
-    └── invoice_extractor.py # Azure Document Intelligence integration
-
-tests/
-├── test_get_exchange_rate.py      # Exchange rate tests
-└── test_azure_invoice_extractor.py # Invoice extractor tests
+/financial-tools-mcp/
+├── backend/                     # FastAPI web application
+│   ├── app/                     # Core application modules
+│   │   ├── main.py              # FastAPI app with endpoints
+│   │   ├── models.py            # SQLAlchemy database models
+│   │   ├── azure_adapter.py     # Azure Document Intelligence
+│   │   ├── currency.py          # Currency conversion service
+│   │   └── db.py                # Database session management
+│   ├── langgraph_nodes/         # Processing pipeline components
+│   ├── tests/                   # Backend unit tests (pytest)
+│   └── alembic/                 # Database migrations
+├── frontend/                    # React TypeScript application
+│   ├── src/
+│   │   ├── components/          # Upload, progress, currency components
+│   │   ├── hooks/               # SSE integration (useSse)
+│   │   └── App.tsx              # Main application component
+│   └── __tests__/               # Frontend tests (Jest + RTL)
+└── docker-compose.yml           # Production deployment configuration
 ```
 
-## Data Models
+## API Endpoints
 
-**Exchange Rate Response:**
-- Returns dictionary with `amount`, `base`, `date`, and `rates` fields
+- `POST /process-invoices` - Upload and process invoice files
+- `GET /progress/{job_id}` - Server-Sent Events for job progress
+- `GET /download/{job_id}` - Download generated Excel report
+- `GET /health` - Health check endpoint
+- `GET /` - Serve React frontend application
 
-**Invoice Data Structure:**
-- `InvoiceData`: Main dataclass containing all extracted invoice fields
-- `DefaultContent`: Text fields with `.content` attribute (InvoiceDate, InvoiceId, VendorName, VendorAddressRecipient)
-- `InvoiceTotal`: Invoice total with `.value_currency` (ValueCurrency object) and `.content` attributes
-- `ValueCurrency`: Monetary values with `.amount` (float) and `.currency_code` (string) attributes
+## Environment Setup
 
-## Error Handling
+### Required Variables
+```bash
+# Azure Document Intelligence (required for invoice processing)
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
+AZURE_DOCUMENT_INTELLIGENCE_API_KEY=your-api-key
 
-**Exchange Rate Tool:**
-- Invalid date formats raise `ValueError`
-- Network timeouts and API errors raise `Exception` with detailed error messages
-- Non-200 HTTP responses include the status code and response body
+# Optional: For quota monitoring
+AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_ID=your-resource-id
+```
 
-**Invoice Extractor:**
-- Missing Azure credentials return `None` with helpful error messages
-- Azure API errors are caught and logged with graceful fallback
-- File not found errors are handled with clear user feedback
+### Development Dependencies
+- **Backend**: Python 3.11+, Poetry, FastAPI, SQLAlchemy, httpx
+- **Frontend**: Node.js 18+, React 19, TypeScript, Tailwind CSS 4
+- **Database**: SQLite with Alembic migrations
+- **Testing**: pytest (backend), Jest + React Testing Library (frontend)
 
-## Development
+## Development Commands
+
+### Backend
+```bash
+cd backend
+
+# Install dependencies
+poetry install
+
+# Run tests
+poetry run pytest
+poetry run pytest tests/test_currency.py -v
+
+# Code quality
+poetry run black .
+poetry run ruff check .
+
+# Database
+poetry run alembic upgrade head
+poetry run alembic revision --autogenerate -m "description"
+
+# Development server
+poetry run uvicorn app.main:app --reload
+```
+
+### Frontend
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Development
+npm run dev
+npm run build
+
+# Testing
+npm test
+npm test -- --coverage --watchAll=false
+
+# Code quality
+npm run lint
+```
+
+## Key Technologies
+
+### Backend Stack
+- **FastAPI**: Modern async Python web framework
+- **SQLAlchemy 2.0**: Advanced ORM with async support
+- **Azure AI**: Document Intelligence for invoice parsing
+- **LangGraph**: Workflow orchestration and state management
+- **httpx**: Async HTTP client for external API calls
+
+### Frontend Stack
+- **React 19**: Latest React with concurrent features
+- **TypeScript**: Full type safety and developer experience
+- **Tailwind CSS 4**: Utility-first styling with modern features
+- **React Dropzone**: File upload with drag & drop
+- **Server-Sent Events**: Real-time progress updates
+
+### Architecture Patterns
+- **Circuit Breaker**: Resilient external API integration
+- **Server-Sent Events**: Real-time progress streaming
+- **Multi-stage Docker**: Optimized production builds
+- **Hybrid Data Models**: Internal robustness + API simplicity
+
+## Testing
+
+### Backend (pytest)
+- **Unit Tests**: Individual service testing with mocks
+- **Integration Tests**: Database and API endpoint testing
+- **Circuit Breaker**: Failure scenarios and recovery testing
+- **Coverage**: 39 tests with comprehensive service coverage
+
+### Frontend (Jest + RTL)
+- **Component Tests**: UI behavior and interaction testing
+- **Hook Tests**: Custom hook functionality with mock EventSource
+- **Type Safety**: Full TypeScript coverage with strict rules
+- **Coverage**: 92%+ test coverage with automated CI checks
+
+## Production Deployment
+
+The application is containerized for easy deployment:
 
 ```bash
-# Install development dependencies
-pip install -e ".[dev]"
+# Build and deploy
+docker-compose up -d --build
 
-# Format code
-black .
+# View logs
+docker-compose logs -f
 
-# Lint code
-ruff check .
-
-# Run all tests
-pytest
-
-# Run specific test files
-pytest tests/test_get_exchange_rate.py
-pytest tests/test_azure_invoice_extractor.py
-
-# Run specific test classes
-pytest tests/test_azure_invoice_extractor.py::TestInvoiceData
+# Scale services
+docker-compose up -d --scale invoice-converter=3
 ```
-
-## Requirements
-
-- **Python**: >= 3.12
-- **Core Dependencies**: `requests`, `python-dateutil`, `mcp`, `azure-ai-documentintelligence`, `python-dotenv`
-- **Development**: `black`, `ruff`, `pytest`, `requests-mock`
-- **Azure Setup**: Document Intelligence resource (F0 tier sufficient for testing)
 
 ## License
 

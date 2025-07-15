@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  invoice-converter:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      # Database configuration
+      - DATABASE_URL=sqlite:///app/invoice.db
+      
+      # Azure Document Intelligence (required for invoice extraction)
+      # Set these in your environment or create a .env file
+      - AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}
+      - AZURE_DOCUMENT_INTELLIGENCE_API_KEY=${AZURE_DOCUMENT_INTELLIGENCE_API_KEY}
+      - AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_ID=${AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_ID}
+    volumes:
+      # Persist uploads and exports
+      - ./data/uploads:/app/uploads
+      - ./data/exports:/app/exports
+      - ./data/database:/app/database
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  uploads:
+  exports:
+  database:
