@@ -21,6 +21,9 @@ app = FastAPI(title="Invoice Converter API")
 # Mount static files (frontend)
 static_path = Path("static")
 if static_path.exists():
+    # Mount assets directory at /assets for CSS/JS files
+    app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+    # Mount static directory for other files (vite.svg, currencies.json, etc.)
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # In-memory progress storage for SSE
@@ -68,7 +71,8 @@ async def execute_pipeline(job_id: str, files: list[dict], target_currency: str)
             }
         )
 
-        await asyncio.wait_for(pipeline.ainvoke(pipeline_input), timeout=pipeline_timeout)
+        result = await asyncio.wait_for(pipeline.ainvoke(pipeline_input), timeout=pipeline_timeout)
+        print(f"Pipeline result: {result}")  # Debug logging
 
         await progress_queue.put(
             {
@@ -128,9 +132,11 @@ async def execute_pipeline(job_id: str, files: list[dict], target_currency: str)
 
 async def event_generator(job_id: str) -> AsyncGenerator[str, None]:
     """Generate SSE events for job progress."""
-    # Create progress queue for this job
-    progress_queue = asyncio.Queue()
-    progress_queues[job_id] = progress_queue
+    # Get or create progress queue for this job
+    progress_queue = progress_queues.get(job_id)
+    if not progress_queue:
+        progress_queue = asyncio.Queue()
+        progress_queues[job_id] = progress_queue
 
     try:
         while True:
@@ -193,6 +199,9 @@ async def process_invoices(
 
     db.commit()
 
+    # Create progress queue before starting background task
+    progress_queues[job_id] = asyncio.Queue()
+
     # Start pipeline execution in background
     asyncio.create_task(execute_pipeline(job_id, file_list, target_currency))
 
@@ -244,3 +253,23 @@ async def serve_frontend():
         return FileResponse(index_path)
     else:
         return {"message": "Frontend not available. API is running at /health"}
+
+
+@app.get("/vite.svg")
+async def serve_vite_svg():
+    """Serve the vite.svg file."""
+    svg_path = Path("static/vite.svg")
+    if svg_path.exists():
+        return FileResponse(svg_path, media_type="image/svg+xml")
+    else:
+        return {"error": "vite.svg File not found"}
+
+
+@app.get("/currencies.json")
+async def serve_currencies():
+    """Serve the currencies.json file."""
+    json_path = Path("static/currencies.json")
+    if json_path.exists():
+        return FileResponse(json_path, media_type="application/json")
+    else:
+        return {"error": "currencies.json File not found"}
