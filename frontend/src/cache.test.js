@@ -1,4 +1,4 @@
-import { getCached, setCached, clearCached, clearAllCache } from './cache.js';
+import { getCached, setCached, clearCached, clearAllCache } from './cache';
 
 // Mock localStorage
 const mockLocalStorage = {
