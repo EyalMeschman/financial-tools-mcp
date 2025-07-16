@@ -222,14 +222,14 @@ def test_error_handling(client):
     """Test error handling in the pipeline."""
 
     # Test with oversized file
-    large_content = b"x" * (2 * 1024 * 1024)  # 2MB file
+    large_content = b"x" * (6 * 1024 * 1024)  # 6MB file
 
     files = [("files", ("large_file.pdf", large_content, "application/pdf"))]
 
     response = client.post("/process-invoices", files=files, data={"target_currency": "USD"})
 
     assert response.status_code == 400
-    assert "exceeds 1MB limit" in response.json()["detail"]
+    assert "exceeds 4MB limit" in response.json()["detail"]
 
 
 def test_too_many_files(client):

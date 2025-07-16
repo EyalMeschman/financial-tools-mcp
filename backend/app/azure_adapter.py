@@ -7,11 +7,12 @@ from pathlib import Path
 from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
 from azure.core.credentials import AzureKeyCredential
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
 # Confidence threshold for accepting extracted data
-CONFIDENCE_THRESHOLD = 0.8
+CONFIDENCE_THRESHOLD = 0.4
 LOW_CONFIDENCE_PLACEHOLDER = "CONFIDENCE_TOO_LOW"
 
 
@@ -21,6 +22,14 @@ class DefaultContent:
     """Text content with optional confidence."""
 
     content: str
+    confidence: float
+
+
+@dataclass
+class InvoiceDate:
+    """Invoice date with optional confidence."""
+
+    value_date: datetime | None
     confidence: float
 
 
@@ -45,7 +54,7 @@ class InvoiceTotal:
 class InvoiceData:
     """Complete invoice data structure matching Azure response."""
 
-    InvoiceDate: DefaultContent | None
+    InvoiceDate: InvoiceDate | None
     InvoiceId: DefaultContent | None
     InvoiceTotal: InvoiceTotal | None
     VendorName: DefaultContent | None
@@ -123,15 +132,14 @@ def _extract_from_azure_response(azure_result) -> InvoiceData | None:
     invoice = azure_result.documents[0]
     fields = invoice.fields
 
-    # Extract content from Azure field objects with proper structure
     invoice_date = None
     if "InvoiceDate" in fields and fields["InvoiceDate"]:
-        content = getattr(fields["InvoiceDate"], "content", "")
+        value_date = getattr(fields["InvoiceDate"], "value_date", None)
         confidence = getattr(fields["InvoiceDate"], "confidence", 0.0)
-        if content:
-            invoice_date = DefaultContent(content=LOW_CONFIDENCE_PLACEHOLDER, confidence=confidence)
+        if value_date:
+            invoice_date = InvoiceDate(value_date=value_date, confidence=confidence)
             if confidence > CONFIDENCE_THRESHOLD:
-                invoice_date = DefaultContent(content=content, confidence=confidence)
+                invoice_date = InvoiceDate(value_date=value_date, confidence=confidence)
 
     invoice_id = None
     if "InvoiceId" in fields and fields["InvoiceId"]:
@@ -201,8 +209,8 @@ def to_simple_format(invoice: InvoiceData, filename: str) -> SimpleInvoiceData:
     """
     # Extract date
     date = None
-    if invoice.InvoiceDate and invoice.InvoiceDate.content:
-        date = invoice.InvoiceDate.content
+    if invoice.InvoiceDate and invoice.InvoiceDate.value_date:
+        date = invoice.InvoiceDate.value_date.strftime("%d-%m-%Y")  # Format as DD-MM-YYYY
 
     # Extract total and currency
     total = None

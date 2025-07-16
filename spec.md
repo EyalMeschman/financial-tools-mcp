@@ -118,7 +118,7 @@ AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_ID   # optional quota check
 
 ### Excel Output Format
 
-| Date (DD/MM/YYYY) | Invoice Suffix | &lt;TARGET CUR&gt; Total Price | Foreign Currency Total Price | Foreign Currency Code | Exchange Rate (4 dp) | Vendor Name |
+| Date (DD/MM/YYYY) | Invoice Suffix | &lt;TARGET CUR&gt; Total Price | Foreign Currency Total Price | Foreign Currency Code | Exchange Rate | Vendor Name |
 |-------------------|----------------|--------------------------------|------------------------------|----------------------|---------------------|-------------|
 
 - Rows sorted by date ascending

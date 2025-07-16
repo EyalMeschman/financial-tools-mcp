@@ -1,5 +1,7 @@
 """Check currency node for currency validation."""
 
+from app.azure_adapter import InvoiceData
+
 
 async def run(input: dict) -> dict:
     """Check currency node that validates currency information.
@@ -10,7 +12,7 @@ async def run(input: dict) -> dict:
     Returns:
         dict: Input dictionary with currency validation results
     """
-    invoices = input.get("invoices", [])
+    invoices: list[InvoiceData] = input.get("invoices", [])
 
     # Prepare data for currency conversion
     files = []
@@ -29,10 +31,9 @@ async def run(input: dict) -> dict:
             file_data["error"] = "No currency information found in invoice"
 
         # Extract date information
+        file_data["invoice_date"] = "2024-01-01"  # Default date if not found TODO: Why do we need a default date?
         if invoice.InvoiceDate:
-            file_data["invoice_date"] = invoice.InvoiceDate.content
-        else:
-            file_data["invoice_date"] = "2024-01-01"  # Default date if not found
+            file_data["invoice_date"] = invoice.InvoiceDate.value_date.strftime("%d-%m-%Y")
 
         files.append(file_data)
 

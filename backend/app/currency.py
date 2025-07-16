@@ -48,17 +48,6 @@ class FrankfurterDown(Exception):
     pass
 
 
-def _normalize_date(date_str: str) -> str:
-    """Normalize a date string to YYYY-MM-DD format."""
-    try:
-        # Parse the date string using dateutil which handles many formats
-        parsed_date = date_parser.parse(date_str)
-        # Return in YYYY-MM-DD format
-        return parsed_date.strftime("%Y-%m-%d")
-    except (ValueError, TypeError) as e:
-        raise ValueError(f"Invalid date format: {date_str}") from e
-
-
 async def get_rate(date: str, from_: str, to_: str) -> Decimal:
     """Get exchange rate from Frankfurter API with circuit breaker.
 
@@ -80,18 +69,15 @@ async def get_rate(date: str, from_: str, to_: str) -> Decimal:
         failure_count = await _circuit_breaker.get_failure_count()
         raise FrankfurterDown(f"Frankfurter API is down after {failure_count + 1} consecutive failures")
 
-    # Normalize the date to YYYY-MM-DD format
-    norm_date = _normalize_date(date)
-
     # Normalize currency codes to uppercase
     from_currency = from_.upper()
     to_currency = to_.upper()
 
     # Make API request with httpx
-    url = f"https://api.frankfurter.app/{norm_date}?from={from_currency}&to={to_currency}"
+    url = f"https://api.frankfurter.app/{date}?from={from_currency}&to={to_currency}"
 
-    # Get timeout from environment or default to 2.0 seconds
-    timeout = float(os.getenv("FRANKFURTER_TIMEOUT", "2.0"))
+    # Get timeout from environment or default to 3.0 seconds
+    timeout = float(os.getenv("FRANKFURTER_TIMEOUT", "3.0"))
 
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -100,7 +86,7 @@ async def get_rate(date: str, from_: str, to_: str) -> Decimal:
         if response.status_code != 200:
             await _circuit_breaker.record_failure()
             raise Exception(
-                f"[get_rate] Failed to fetch exchange rate for {norm_date} ({from_currency} to {to_currency}). "
+                f"[get_rate] Failed to fetch exchange rate for {date} ({from_currency} to {to_currency}). "
                 f"Code {response.status_code} {response.reason_phrase}\n{response.text}"
             )
 
@@ -109,26 +95,24 @@ async def get_rate(date: str, from_: str, to_: str) -> Decimal:
         # Extract the exchange rate from the response
         if to_currency not in data.get("rates", {}):
             await _circuit_breaker.record_failure()
-            raise Exception(f"[get_rate] Currency {to_currency} not found in response for {norm_date}")
+            raise Exception(f"[get_rate] Currency {to_currency} not found in response for {date}")
 
         rate = data["rates"][to_currency]
 
         # Reset failure count on complete success
         await _circuit_breaker.record_success()
 
-        # Apply ROUND_HALF_UP rounding to 2 decimal places as required by milestone
-        decimal_rate = Decimal(str(rate))
-        return decimal_rate.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return Decimal(str(rate))
 
     except httpx.TimeoutException as e:
         await _circuit_breaker.record_failure()
-        raise Exception(f"[get_rate] Request timeout for date {norm_date}") from e
+        raise Exception(f"[get_rate] Request timeout for date {date}") from e
     except httpx.RequestError as e:
         await _circuit_breaker.record_failure()
-        raise Exception(f"[get_rate] Network error for date {norm_date}: {e}") from e
+        raise Exception(f"[get_rate] Network error for date {date}: {e}") from e
     except (ValueError, KeyError) as e:
         await _circuit_breaker.record_failure()
-        raise Exception(f"[get_rate] Invalid JSON response for date {norm_date}") from e
+        raise Exception(f"[get_rate] Invalid JSON response for date {date}") from e
 
 
 async def reset_circuit_breaker() -> None:

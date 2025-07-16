@@ -69,7 +69,7 @@ class TestExcelNode:
             "USD Total Price",
             "Foreign Currency Total Price",
             "Foreign Currency Code",
-            "Exchange Rate (4 dp)",
+            "Exchange Rate",
             "Vendor Name",
         ]
         for col, expected_header in enumerate(expected_headers, 1):

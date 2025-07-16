@@ -3,6 +3,7 @@ import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOption
 import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/20/solid';
 import { fetchCurrencies } from '../utils/fetchCurrencies';
 import { filterCurrencies, sortCurrencies } from '../utils/currency-utils';
+import { getApiUrl } from '../config';
 
 interface Currency {
   code: string;
@@ -24,7 +25,7 @@ export default function CurrencySelect({ selectedCurrency, onCurrencyChange }: C
   useEffect(() => {
     const loadCurrencies = async () => {
       try {
-        const currencyData = await fetchCurrencies('/currencies.json');
+        const currencyData = await fetchCurrencies(getApiUrl('/currencies.json'));
         
         // Convert to expected format with symbol from raw data
         const currencyArray: Currency[] = currencyData
@@ -83,28 +84,39 @@ export default function CurrencySelect({ selectedCurrency, onCurrencyChange }: C
           <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
             <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
           </ComboboxButton>
-          <ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
-            {filteredCurrencies.length === 0 && query !== '' ? (
-              <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
-                No currencies found.
-              </div>
-            ) : (
-              filteredCurrencies.map((currency) => (
-                <ComboboxOption
-                  key={currency.code}
-                  className="data-[focus]:bg-amber-100 data-[focus]:text-amber-900 relative cursor-default select-none py-2 pl-10 pr-4 text-gray-900"
-                  value={currency.code}
-                  data-testid={`currency-option-${currency.code}`}
-                >
-                  <span className="data-[selected]:font-medium block truncate font-normal">
-                    {currency.code} - {currency.name}
-                  </span>
-                  <span className="data-[selected]:flex absolute inset-y-0 left-0 hidden items-center pl-3 text-amber-600">
-                    <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                </ComboboxOption>
-              ))
-            )}
+          <ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-hidden rounded-md bg-white text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+            <div className="sticky top-0 z-10 bg-white px-2 py-2 border-b border-gray-200">
+              <input
+                type="text"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Search currencies..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              {filteredCurrencies.length === 0 && query !== '' ? (
+                <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+                  No currencies found.
+                </div>
+              ) : (
+                filteredCurrencies.map((currency) => (
+                  <ComboboxOption
+                    key={currency.code}
+                    className="data-[focus]:bg-blue-50 data-[focus]:text-blue-900 relative cursor-default select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-gray-50"
+                    value={currency.code}
+                    data-testid={`currency-option-${currency.code}`}
+                  >
+                    <span className="data-[selected]:font-medium block truncate font-normal">
+                      {currency.code} - {currency.name}
+                    </span>
+                    <span className="data-[selected]:flex absolute inset-y-0 left-0 hidden items-center pl-3 text-blue-600">
+                      <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                  </ComboboxOption>
+                ))
+              )}
+            </div>
           </ComboboxOptions>
         </div>
       </Combobox>

@@ -62,7 +62,7 @@ async def run(input: dict) -> dict:
         f"{target_currency} Total Price",
         "Foreign Currency Total Price",
         "Foreign Currency Code",
-        "Exchange Rate (4 dp)",
+        "Exchange Rate",
         "Vendor Name",
     ]
 
@@ -86,7 +86,7 @@ async def run(input: dict) -> dict:
         filename = getattr(invoice, "_filename", "")
 
         # Extract data with error handling per spec
-        date = invoice.InvoiceDate.content if invoice.InvoiceDate else "ERROR"
+        date = invoice.InvoiceDate.value_date.strftime("%d-%m-%Y") if invoice.InvoiceDate else "ERROR"
         suffix = invoice_suffix(invoice)
         vendor_name = invoice.VendorName.content if invoice.VendorName else "N/A"
 
