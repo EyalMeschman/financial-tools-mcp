@@ -17,10 +17,10 @@
 .currency-list {
   list-style: none;
   padding: 0;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: #fff;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
   max-height: 200px;
   overflow-y: auto;
 }
@@ -58,4 +58,34 @@
   color: #856404;
   padding: 1px 2px;
   border-radius: 2px;
+}
+
+.currency-item.selected {
+  background-color: #007cba;
+  color: white;
+}
+
+.currency-item.selected strong {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+#dropdown-root.collapsed {
+  display: none;
+}
+
+#dropdown-container {
+  position: relative;
+}
+
+#dropdown-root {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
 }
