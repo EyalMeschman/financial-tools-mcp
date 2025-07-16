@@ -1,14 +1,13 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import CurrencySelect from './CurrencySelect';
-import { fetchCurrencies } from '../utils/fetchCurrencies';
-import type { CurrencyData } from '../utils/fetchCurrencies';
+import { fetchCurrencies, Currency } from '../lib/currency';
 
 // Mock the fetchCurrencies utility
-jest.mock('../utils/fetchCurrencies', () => ({
+jest.mock('../lib/currency', () => ({
   fetchCurrencies: jest.fn()
 }));
 
-const mockCurrencyData: CurrencyData[] = [
+const mockCurrencyData: Currency[] = [
   { code: 'USD', name: 'United States Dollar' },
   { code: 'EUR', name: 'Euro' },
   { code: 'GBP', name: 'Pound Sterling' }

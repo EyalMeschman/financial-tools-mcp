@@ -1,15 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from '@headlessui/react';
 import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/20/solid';
-import { fetchCurrencies } from '../utils/fetchCurrencies';
+import { fetchCurrencies, Currency } from '../lib/currency';
 import { filterCurrencies, sortCurrencies } from '../utils/currency-utils';
 import { getApiUrl } from '../config';
-
-interface Currency {
-  code: string;
-  name: string;
-  symbol?: string;
-}
 
 interface CurrencySelectProps {
   selectedCurrency: string;
