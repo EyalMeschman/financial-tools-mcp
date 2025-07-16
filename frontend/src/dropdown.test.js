@@ -96,7 +96,35 @@ describe('Dropdown with Choices.js', () => {
   });
 
   describe('Event Handling', () => {
-    it('should dispatch custom event on selection', async () => {
+    it('should dispatch currency:change event on selection', async () => {
+      await initDropdown();
+      
+      let capturedEvent = null;
+      document.addEventListener('currency:change', (event) => {
+        capturedEvent = event;
+      });
+      
+      // Simulate select change
+      selectElement.value = 'USD';
+      const changeEvent = new Event('change');
+      selectElement.dispatchEvent(changeEvent);
+      
+      expect(capturedEvent).not.toBeNull();
+      expect(capturedEvent.detail.code).toBe('USD');
+    });
+
+    it('should set hidden select value on selection', async () => {
+      await initDropdown();
+      
+      // Simulate select change
+      selectElement.value = 'EUR';
+      const changeEvent = new Event('change');
+      selectElement.dispatchEvent(changeEvent);
+      
+      expect(selectElement.value).toBe('EUR');
+    });
+
+    it('should dispatch legacy currencySelected event for compatibility', async () => {
       await initDropdown();
       
       let selectedCurrency = null;

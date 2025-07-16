@@ -70,6 +70,44 @@ describe('Currency Dropdown', () => {
     cy.get('.choices__item--choice').should('exist');
   });
 
+  it('should dispatch currency:change event when selecting SGD', () => {
+    cy.visit('/');
+    
+    // Set up event listener to capture the custom event
+    cy.window().then((win) => {
+      win.capturedEvent = null;
+      win.document.addEventListener('currency:change', (event) => {
+        win.capturedEvent = event;
+      });
+    });
+    
+    // Wait for Choices.js to initialize
+    cy.get('.choices', { timeout: 10000 }).should('exist');
+    
+    // Click to open dropdown
+    cy.get('.choices__inner').click();
+    
+    // Wait for dropdown to open
+    cy.get('.choices__list--dropdown').should('be.visible');
+    
+    // Search for SGD
+    cy.get('.choices__input--cloned').type('SGD');
+    
+    // Click on SGD option
+    cy.get('.choices__list--dropdown .choices__item')
+      .contains('SGD')
+      .click();
+    
+    // Verify the event was dispatched with correct code
+    cy.window().then((win) => {
+      expect(win.capturedEvent).to.not.be.null;
+      expect(win.capturedEvent.detail.code).to.equal('SGD');
+    });
+    
+    // Verify the hidden select value is set
+    cy.get('#currency-picker').should('have.value', 'SGD');
+  });
+
   describe('Keyboard Navigation', () => {
     it('should support keyboard navigation with Choices.js', () => {
       cy.visit('/');

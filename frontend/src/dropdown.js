@@ -82,11 +82,20 @@ function setupEventListeners() {
     const selectedCurrency = allCurrencies.find(c => c.code === selectedValue);
     
     if (selectedCurrency) {
-      // Dispatch custom event for compatibility with existing code
-      const customEvent = new CustomEvent('currencySelected', {
+      // Set value of hidden select element
+      selectElement.value = selectedValue;
+      
+      // Dispatch custom currency:change event with code detail
+      const currencyChangeEvent = new CustomEvent('currency:change', {
+        detail: { code: selectedValue }
+      });
+      document.dispatchEvent(currencyChangeEvent);
+      
+      // Also dispatch legacy event for compatibility with existing code
+      const legacyEvent = new CustomEvent('currencySelected', {
         detail: { currency: selectedCurrency }
       });
-      document.dispatchEvent(customEvent);
+      document.dispatchEvent(legacyEvent);
     }
   });
 }
