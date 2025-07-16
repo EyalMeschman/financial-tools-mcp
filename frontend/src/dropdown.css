@@ -1,3 +1,19 @@
+#currency-search {
+  width: 100%;
+  padding: 8px 12px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+#currency-search:focus {
+  outline: none;
+  border-color: #007cba;
+  box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+}
+
 .currency-list {
   list-style: none;
   padding: 0;
@@ -35,4 +51,11 @@
   background-color: #ffebee;
   border: 1px solid #ffcdd2;
   border-radius: 4px;
+}
+
+.currency-item strong {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 1px 2px;
+  border-radius: 2px;
 }

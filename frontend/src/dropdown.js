@@ -1,4 +1,8 @@
 import { fetchCurrencies } from './currency-dropdown/fetchCurrencies.js';
+import { filterCurrencies } from './currency-utils.js';
+
+let allCurrencies = [];
+let currentQuery = '';
 
 /**
  * Initializes the currency dropdown by fetching currencies and rendering them
@@ -6,8 +10,9 @@ import { fetchCurrencies } from './currency-dropdown/fetchCurrencies.js';
 export async function initDropdown() {
   try {
     const currencyData = await fetchCurrencies('/currencies.json');
-    const currencies = convertObjectToArray(currencyData);
-    renderCurrencies(currencies.slice(0, 3)); // Show only first 3 for test
+    allCurrencies = convertObjectToArray(currencyData);
+    renderCurrencies(allCurrencies.slice(0, 3)); // Show first 3 initially
+    setupSearchListener();
   } catch (error) {
     console.error('Failed to load currencies:', error);
     renderError('Failed to load currencies');
@@ -23,6 +28,54 @@ function convertObjectToArray(currencyObject) {
     code,
     name: data.name
   }));
+}
+
+/**
+ * Sets up the search input listener
+ */
+function setupSearchListener() {
+  const searchInput = document.getElementById('currency-search');
+  if (!searchInput) {
+    console.error('Search input element not found');
+    return;
+  }
+
+  searchInput.addEventListener('input', (event) => {
+    currentQuery = event.target.value;
+    performSearch();
+  });
+}
+
+/**
+ * Performs search and re-renders results
+ */
+function performSearch() {
+  let filteredCurrencies;
+  
+  if (currentQuery.trim() === '') {
+    // Show first 3 when no search query
+    filteredCurrencies = allCurrencies.slice(0, 3);
+  } else {
+    // Filter currencies based on search query
+    filteredCurrencies = filterCurrencies(allCurrencies, currentQuery);
+  }
+  
+  renderCurrencies(filteredCurrencies);
+}
+
+/**
+ * Highlights matching substring in text
+ * @param {string} text - Text to highlight
+ * @param {string} query - Query to highlight
+ * @returns {string} HTML with highlighted matches
+ */
+function highlightMatch(text, query) {
+  if (!query || query.trim() === '') {
+    return text;
+  }
+  
+  const regex = new RegExp(`(${query})`, 'gi');
+  return text.replace(regex, '<strong>$1</strong>');
 }
 
 /**
@@ -49,7 +102,12 @@ function renderCurrencies(currencies) {
   currencies.forEach(currency => {
     const listItem = document.createElement('li');
     listItem.className = 'currency-item';
-    listItem.textContent = `${currency.code} - ${currency.name}`;
+    
+    // Create highlighted text
+    const highlightedCode = highlightMatch(currency.code, currentQuery);
+    const highlightedName = highlightMatch(currency.name, currentQuery);
+    
+    listItem.innerHTML = `${highlightedCode} - ${highlightedName}`;
     listItem.setAttribute('data-code', currency.code);
     list.appendChild(listItem);
   });
