@@ -1,0 +1,162 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Legacy Currency Dropdown Snapshot should demonstrate the current implementation structure 1`] = `
+<div
+  class="w-48"
+  data-testid="currency-select"
+>
+  <div
+    class="relative"
+    data-headlessui-state=""
+  >
+    <input
+      aria-autocomplete="list"
+      aria-expanded="false"
+      class="relative w-full cursor-default rounded-lg bg-white py-2 pl-3 pr-10 text-left shadow-md focus:outline-none focus-visible:border-indigo-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm"
+      data-headlessui-state=""
+      id="headlessui-combobox-input-«rg»"
+      placeholder="Search currencies..."
+      role="combobox"
+      type="text"
+    />
+    <button
+      aria-expanded="false"
+      aria-haspopup="listbox"
+      class="absolute inset-y-0 right-0 flex items-center pr-2"
+      data-headlessui-state=""
+      id="headlessui-combobox-button-«rh»"
+      tabindex="-1"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="h-5 w-5 text-gray-400"
+        data-slot="icon"
+        fill="currentColor"
+        viewBox="0 0 20 20"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          clip-rule="evenodd"
+          d="M10.53 3.47a.75.75 0 0 0-1.06 0L6.22 6.72a.75.75 0 0 0 1.06 1.06L10 5.06l2.72 2.72a.75.75 0 1 0 1.06-1.06l-3.25-3.25Zm-4.31 9.81 3.25 3.25a.75.75 0 0 0 1.06 0l3.25-3.25a.75.75 0 1 0-1.06-1.06L10 14.94l-2.72-2.72a.75.75 0 0 0-1.06 1.06Z"
+          fill-rule="evenodd"
+        />
+      </svg>
+    </button>
+  </div>
+</div>
+`;
+
+exports[`Legacy Currency Dropdown Snapshot should render the currency dropdown with currencies loaded 1`] = `
+<div
+  class="w-48"
+  data-testid="currency-select"
+>
+  <div
+    class="relative"
+    data-headlessui-state=""
+  >
+    <input
+      aria-autocomplete="list"
+      aria-expanded="false"
+      class="relative w-full cursor-default rounded-lg bg-white py-2 pl-3 pr-10 text-left shadow-md focus:outline-none focus-visible:border-indigo-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm"
+      data-headlessui-state=""
+      id="headlessui-combobox-input-«r2»"
+      placeholder="Search currencies..."
+      role="combobox"
+      type="text"
+    />
+    <button
+      aria-expanded="false"
+      aria-haspopup="listbox"
+      class="absolute inset-y-0 right-0 flex items-center pr-2"
+      data-headlessui-state=""
+      id="headlessui-combobox-button-«r3»"
+      tabindex="-1"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="h-5 w-5 text-gray-400"
+        data-slot="icon"
+        fill="currentColor"
+        viewBox="0 0 20 20"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          clip-rule="evenodd"
+          d="M10.53 3.47a.75.75 0 0 0-1.06 0L6.22 6.72a.75.75 0 0 0 1.06 1.06L10 5.06l2.72 2.72a.75.75 0 1 0 1.06-1.06l-3.25-3.25Zm-4.31 9.81 3.25 3.25a.75.75 0 0 0 1.06 0l3.25-3.25a.75.75 0 1 0-1.06-1.06L10 14.94l-2.72-2.72a.75.75 0 0 0-1.06 1.06Z"
+          fill-rule="evenodd"
+        />
+      </svg>
+    </button>
+  </div>
+</div>
+`;
+
+exports[`Legacy Currency Dropdown Snapshot should render the currency dropdown with loading state 1`] = `
+<div
+  class="w-48"
+>
+  <div
+    class="relative"
+  >
+    <div
+      class="relative w-full cursor-default rounded-lg bg-white py-2 pl-3 pr-10 text-left shadow-md focus:outline-none focus-visible:border-indigo-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm"
+    >
+      <span
+        class="block truncate text-gray-400"
+      >
+        Loading currencies...
+      </span>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Legacy Currency Dropdown Snapshot should render with a very long currency name to demonstrate truncation 1`] = `
+<div
+  class="w-48"
+  data-testid="currency-select"
+>
+  <div
+    class="relative"
+    data-headlessui-state=""
+  >
+    <input
+      aria-autocomplete="list"
+      aria-expanded="false"
+      class="relative w-full cursor-default rounded-lg bg-white py-2 pl-3 pr-10 text-left shadow-md focus:outline-none focus-visible:border-indigo-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm"
+      data-headlessui-state=""
+      id="headlessui-combobox-input-«r9»"
+      placeholder="Search currencies..."
+      role="combobox"
+      type="text"
+    />
+    <button
+      aria-expanded="false"
+      aria-haspopup="listbox"
+      class="absolute inset-y-0 right-0 flex items-center pr-2"
+      data-headlessui-state=""
+      id="headlessui-combobox-button-«ra»"
+      tabindex="-1"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="h-5 w-5 text-gray-400"
+        data-slot="icon"
+        fill="currentColor"
+        viewBox="0 0 20 20"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          clip-rule="evenodd"
+          d="M10.53 3.47a.75.75 0 0 0-1.06 0L6.22 6.72a.75.75 0 0 0 1.06 1.06L10 5.06l2.72 2.72a.75.75 0 1 0 1.06-1.06l-3.25-3.25Zm-4.31 9.81 3.25 3.25a.75.75 0 0 0 1.06 0l3.25-3.25a.75.75 0 1 0-1.06-1.06L10 14.94l-2.72-2.72a.75.75 0 0 0-1.06 1.06Z"
+          fill-rule="evenodd"
+        />
+      </svg>
+    </button>
+  </div>
+</div>
+`;
