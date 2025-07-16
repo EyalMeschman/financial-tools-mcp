@@ -1,6 +1,7 @@
 """Tests for the convert node."""
 
 import os
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 from unittest.mock import patch
 
@@ -8,6 +9,7 @@ import httpx
 import pytest
 import respx
 
+from app.azure_adapter import InvoiceData, InvoiceDate
 from app.currency import reset_circuit_breaker
 from langgraph_nodes.convert import run
 
@@ -24,12 +26,34 @@ class TestConvertNode:
         # Reset after test to clean up
         await reset_circuit_breaker()
 
+    def create_mock_invoice(self, date_str: str) -> InvoiceData:
+        """Create a mock InvoiceData object for testing."""
+        return InvoiceData(
+            InvoiceDate=InvoiceDate(value_date=datetime.strptime(date_str, "%Y-%m-%d"), confidence=0.95),
+            InvoiceId=None,
+            InvoiceTotal=None,
+            VendorName=None,
+            VendorAddressRecipient=None,
+        )
+
+    def create_aligned_mock_invoices(self, files: list) -> list[InvoiceData]:
+        """Create mock invoices aligned with files. Uses file invoice_date if available, otherwise uses default."""
+        invoices = []
+        for file_data in files:
+            if "invoice_date" in file_data:
+                invoices.append(self.create_mock_invoice(file_data["invoice_date"]))
+            else:
+                # For files without invoice_date, create a mock with default date
+                invoices.append(self.create_mock_invoice("2025-07-01"))
+        return invoices
+
     @pytest.mark.asyncio
     async def test_happy_path_conversion(self):
         """Test successful currency conversion with ILS default."""
         input_data = {
             "job_id": "test-job-123",
             "files": [{"id": "file-1", "invoice_date": "2025-07-01", "src_currency": "USD", "invoice_total": 100.00}],
+            "invoices": [self.create_mock_invoice("2025-07-01")],
         }
 
         expected_response = {"amount": 1.0, "base": "USD", "date": "2025-07-01", "rates": {"ILS": 3.65}}
@@ -62,6 +86,7 @@ class TestConvertNode:
                     "invoice_total": 0.005,  # Edge case for rounding
                 }
             ],
+            "invoices": [self.create_mock_invoice("2025-07-01")],
         }
 
         # Rate that will produce 0.005 after multiplication (0.005 * 1.0 = 0.005)
@@ -85,6 +110,7 @@ class TestConvertNode:
             "job_id": "test-job-123",
             "target_currency": "USD",
             "files": [{"id": "file-1", "invoice_date": "2025-07-01", "src_currency": "USD", "invoice_total": 100.00}],
+            "invoices": [self.create_mock_invoice("2025-07-01")],
         }
 
         # No API call should be made
@@ -101,6 +127,7 @@ class TestConvertNode:
             "job_id": "test-job-123",
             "target_currency": "EUR",  # Override default ILS
             "files": [{"id": "file-1", "invoice_date": "2025-07-01", "src_currency": "USD", "invoice_total": 100.00}],
+            "invoices": [self.create_mock_invoice("2025-07-01")],
         }
 
         expected_response = {"amount": 1.0, "base": "USD", "date": "2025-07-01", "rates": {"EUR": 0.85}}
@@ -123,6 +150,7 @@ class TestConvertNode:
             "job_id": "test-job-123",
             # No target_currency in job payload
             "files": [{"id": "file-1", "invoice_date": "2025-07-01", "src_currency": "USD", "invoice_total": 100.00}],
+            "invoices": [self.create_mock_invoice("2025-07-01")],
         }
 
         expected_response = {"amount": 1.0, "base": "USD", "date": "2025-07-01", "rates": {"EUR": 0.85}}
@@ -163,6 +191,28 @@ class TestConvertNode:
                     # Missing invoice_total
                 },
             ],
+            "invoices": self.create_aligned_mock_invoices(
+                [
+                    {
+                        "id": "file-1",
+                        # Missing invoice_date
+                        "src_currency": "USD",
+                        "invoice_total": 100.00,
+                    },
+                    {
+                        "id": "file-2",
+                        "invoice_date": "2025-07-01",
+                        # Missing src_currency
+                        "invoice_total": 100.00,
+                    },
+                    {
+                        "id": "file-3",
+                        "invoice_date": "2025-07-01",
+                        "src_currency": "USD"
+                        # Missing invoice_total
+                    },
+                ]
+            ),
         }
 
         result = await run(input_data)
@@ -180,6 +230,10 @@ class TestConvertNode:
             "files": [
                 {"id": "file-1", "invoice_date": "2025-07-01", "src_currency": "USD", "invoice_total": 100.00},
                 {"id": "file-2", "invoice_date": "2025-07-01", "src_currency": "EUR", "invoice_total": 85.00},
+            ],
+            "invoices": [
+                self.create_mock_invoice("2025-07-01"),
+                self.create_mock_invoice("2025-07-01"),
             ],
         }
 
@@ -218,6 +272,7 @@ class TestConvertNode:
         input_data = {
             "job_id": "test-job-123",
             "files": [{"id": "file-1", "invoice_date": "2025-07-01", "src_currency": "USD", "invoice_total": 100.00}],
+            "invoices": [self.create_mock_invoice("2025-07-01")],
         }
 
         with respx.mock:
@@ -249,6 +304,7 @@ class TestConvertNode:
         fail_input = {
             "job_id": "test-job-123",
             "files": [{"id": "file-1", "invoice_date": "2025-07-01", "src_currency": "USD", "invoice_total": 100.00}],
+            "invoices": [self.create_mock_invoice("2025-07-01")],
         }
 
         success_input = {
@@ -261,6 +317,7 @@ class TestConvertNode:
                     "invoice_total": 100.00,
                 }
             ],
+            "invoices": [self.create_mock_invoice("2025-07-02")],
         }
 
         # Verify circuit breaker starts clean
@@ -313,6 +370,18 @@ class TestConvertNode:
                 },
                 {"id": "file-3", "invoice_date": "2025-07-01", "src_currency": "GBP", "invoice_total": 75.00},
             ],
+            "invoices": self.create_aligned_mock_invoices(
+                [
+                    {"id": "file-1", "invoice_date": "2025-07-01", "src_currency": "USD", "invoice_total": 100.00},
+                    {
+                        "id": "file-2",
+                        # Missing invoice_date - should fail
+                        "src_currency": "EUR",
+                        "invoice_total": 85.00,
+                    },
+                    {"id": "file-3", "invoice_date": "2025-07-01", "src_currency": "GBP", "invoice_total": 75.00},
+                ]
+            ),
         }
 
         with respx.mock(assert_all_called=False) as respx_mock:
@@ -365,6 +434,7 @@ class TestConvertNode:
                     "invoice_total": 123.456,  # Will test precision
                 }
             ],
+            "invoices": [self.create_mock_invoice("2025-07-01")],
         }
 
         # Rate that will produce fractional result requiring rounding
@@ -378,9 +448,9 @@ class TestConvertNode:
             result = await run(input_data)
 
             file_result = result["files"][0]
-            # Rate 3.333 gets rounded to 3.33 by currency service (ROUND_HALF_UP)
-            # Then 123.456 * 3.33 = 411.10848, which rounds to 411.11 (ROUND_HALF_UP)
-            rounded_rate = Decimal("3.333").quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            expected_converted = (Decimal("123.456") * rounded_rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            # Currency service returns Decimal("3.333") without rounding
+            # Then 123.456 * 3.333 = 411.480048, which rounds to 411.48 (ROUND_HALF_UP)
+            rate = Decimal("3.333")
+            expected_converted = (Decimal("123.456") * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             assert file_result["converted_total"] == float(expected_converted)
-            assert file_result["exchange_rate"] == float(rounded_rate)
+            assert file_result["exchange_rate"] == float(rate)

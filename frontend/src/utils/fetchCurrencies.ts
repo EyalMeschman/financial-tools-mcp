@@ -1,9 +1,9 @@
 import { getCached, setCached } from '../cache';
 
 export class CurrencyFetchError extends Error {
-  public cause?: any;
+  public cause?: unknown;
   
-  constructor(message: string, cause?: any) {
+  constructor(message: string, cause?: unknown) {
     super(message);
     this.name = 'CurrencyFetchError';
     this.cause = cause;
@@ -15,12 +15,23 @@ export interface CurrencyData {
   name: string;
 }
 
+interface RawCurrencyItem {
+  code: string;
+  name: string;
+}
+
+interface RawCurrencyObject {
+  [key: string]: {
+    name: string;
+  };
+}
+
 export async function fetchCurrencies(url: string, { timeoutMs = 5000 }: { timeoutMs?: number } = {}): Promise<CurrencyData[]> {
   const cacheKey = 'currencies_v1';
   const cacheTtl = 86400; // 24 hours in seconds
   
   // Try to get from cache first
-  const cachedData = getCached(cacheKey);
+  const cachedData = getCached<CurrencyData[]>(cacheKey);
   if (cachedData) {
     return cachedData;
   }
@@ -52,13 +63,14 @@ export async function fetchCurrencies(url: string, { timeoutMs = 5000 }: { timeo
     // Handle both array and object formats
     let processedData: CurrencyData[];
     if (Array.isArray(data)) {
-      processedData = data.map((item: any) => ({
+      processedData = (data as RawCurrencyItem[]).map((item) => ({
         code: item.code,
         name: item.name
       }));
     } else {
       // Handle object format like { "USD": { "name": "US Dollar" }, ... }
-      processedData = Object.entries(data).map(([code, currencyData]: [string, any]) => ({
+      const objData = data as RawCurrencyObject;
+      processedData = Object.entries(objData).map(([code, currencyData]) => ({
         code,
         name: currencyData.name
       }));
@@ -69,10 +81,10 @@ export async function fetchCurrencies(url: string, { timeoutMs = 5000 }: { timeo
     
     return processedData;
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     clearTimeout(timeoutId);
     
-    if (error.name === 'AbortError') {
+    if (error instanceof Error && error.name === 'AbortError') {
       throw new CurrencyFetchError(`Request timed out after ${timeoutMs}ms`, error);
     }
     

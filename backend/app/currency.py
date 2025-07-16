@@ -2,10 +2,9 @@
 
 import asyncio
 import os
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 
 import httpx
-from dateutil import parser as date_parser
 
 
 # Thread-safe circuit breaker state

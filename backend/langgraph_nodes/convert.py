@@ -3,7 +3,7 @@
 import os
 from decimal import ROUND_HALF_UP, Decimal
 
-from app.azure_adapter import InvoiceData, InvoiceDate
+from app.azure_adapter import InvoiceData
 from app.currency import get_rate
 
 
@@ -22,7 +22,8 @@ async def run(input: dict) -> dict:
                         "src_currency": "USD",
                         "invoice_total": 145.67
                     }
-                ]
+                ],
+                "invoices": [InvoiceData objects]
             }
 
     Returns:
@@ -35,10 +36,11 @@ async def run(input: dict) -> dict:
     files = input.get("files", [])
     invoices: list[InvoiceData] = input.get("invoices", [])
 
-    for file_data, invoice in zip(files, invoices):
+    # Process files with their corresponding invoices (if available)
+    for invoice, file_data in zip(invoices, files, strict=False):
         try:
-            # Extract required fields
-            invoice_date: InvoiceDate = file_data.get("invoice_date")
+            # Extract required fields from file data
+            invoice_date = file_data.get("invoice_date")
             src_currency: str = file_data.get("src_currency")
             invoice_total: float = file_data.get("invoice_total")
 
@@ -54,8 +56,10 @@ async def run(input: dict) -> dict:
                 file_data["converted_total"] = float(invoice_total)
                 continue
 
-            # Get exchange rate from Frankfurter API
-            rate = await get_rate(invoice.InvoiceDate.value_date.strftime("%Y-%m-%d"), src_currency, target_currency)
+            if invoice and invoice.InvoiceDate and invoice.InvoiceDate.value_date:
+                rate = await get_rate(
+                    invoice.InvoiceDate.value_date.strftime("%Y-%m-%d"), src_currency, target_currency
+                )
 
             # Convert the total amount with ROUND_HALF_UP rounding
             original_amount = Decimal(str(invoice_total))
@@ -70,29 +74,10 @@ async def run(input: dict) -> dict:
             file_data["status"] = "failed"
             file_data["error"] = f"Currency conversion failed: {str(e)}"
 
-        invoice._conversion_status = file_data.get("status", "success")
-        invoice._converted_amount = file_data.get("converted_total")
-        invoice._exchange_rate = file_data.get("exchange_rate")
-
-    # # Also apply conversion results to invoices if they exist
-    # if invoices:
-    #     conversion_data = {}
-    #     for file_data in files:
-    #         filename = file_data.get("filename")
-    #         if filename:
-    #             conversion_data[filename] = {
-    #                 "converted_total": file_data.get("converted_total"),
-    #                 "exchange_rate": file_data.get("exchange_rate"),
-    #                 "status": file_data.get("status", "success"),
-    #             }
-
-    #     # Apply conversion results to invoices
-    #     for invoice in invoices:
-    #         filename = getattr(invoice, "_filename", "unknown")
-    #         if filename in conversion_data:
-    #             conv_data = conversion_data[filename]
-    #             invoice._converted_amount = conv_data["converted_total"]
-    #             invoice._exchange_rate = conv_data["exchange_rate"]
-    #             invoice._conversion_status = conv_data["status"]
+        # Update invoice object with conversion results (if invoice exists)
+        if invoice:
+            invoice._conversion_status = file_data.get("status", "success")
+            invoice._converted_amount = file_data.get("converted_total")
+            invoice._exchange_rate = file_data.get("exchange_rate")
 
     return input

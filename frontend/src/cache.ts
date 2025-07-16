@@ -2,8 +2,8 @@
  * Simple cache implementation using localStorage with TTL support
  */
 
-interface CacheItem {
-  data: any;
+interface CacheItem<T = unknown> {
+  data: T;
   expiry: number | null;
   timestamp: number;
 }
@@ -11,14 +11,14 @@ interface CacheItem {
 /**
  * Gets cached data if it exists and hasn't expired
  */
-export function getCached(key: string): any | null {
+export function getCached<T = unknown>(key: string): T | null {
   try {
     const cachedItem = localStorage.getItem(key);
     if (!cachedItem) {
       return null;
     }
 
-    const parsedItem: CacheItem = JSON.parse(cachedItem);
+    const parsedItem: CacheItem<T> = JSON.parse(cachedItem);
     
     // Check if item has expired
     if (parsedItem.expiry && Date.now() > parsedItem.expiry) {
@@ -36,11 +36,11 @@ export function getCached(key: string): any | null {
 /**
  * Sets cached data with TTL
  */
-export function setCached(key: string, data: any, ttlSeconds?: number): void {
+export function setCached<T = unknown>(key: string, data: T, ttlSeconds?: number): void {
   try {
     const expiry = ttlSeconds ? Date.now() + (ttlSeconds * 1000) : null;
     
-    const cacheItem: CacheItem = {
+    const cacheItem: CacheItem<T> = {
       data,
       expiry,
       timestamp: Date.now()

@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from app.currency import FrankfurterDown, _normalize_date, get_failure_count, get_rate, reset_circuit_breaker
+from app.currency import FrankfurterDown, get_failure_count, get_rate, reset_circuit_breaker
 
 
 class TestGetRate:
@@ -50,19 +50,16 @@ class TestGetRate:
 
     @pytest.mark.asyncio
     async def test_date_formats(self):
-        """Test various date format inputs."""
+        """Test standard date format input."""
         expected_response = {"amount": 1.0, "base": "USD", "date": "2025-07-10", "rates": {"EUR": 1.2}}
 
-        date_formats = ["2025-07-10", "07/10/2025", "10 Jul 2025"]
+        with respx.mock:
+            respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
+                return_value=httpx.Response(200, json=expected_response)
+            )
 
-        for date_format in date_formats:
-            with respx.mock:
-                respx.get("https://api.frankfurter.app/2025-07-10?from=USD&to=EUR").mock(
-                    return_value=httpx.Response(200, json=expected_response)
-                )
-
-                result = await get_rate(date_format, "USD", "EUR")
-                assert result == Decimal("1.20")  # Should be rounded to 2 decimal places
+            result = await get_rate("2025-07-10", "USD", "EUR")
+            assert result == Decimal("1.20")  # Should be rounded to 2 decimal places
 
     @pytest.mark.asyncio
     async def test_failure_increments_counter(self):
@@ -196,35 +193,6 @@ class TestGetRate:
                 await get_rate("2025-07-10", "USD", "EUR")
 
             assert await get_failure_count() == 1
-
-    @pytest.mark.asyncio
-    async def test_invalid_date_format(self):
-        """Test that invalid dates raise ValueError."""
-        # Ensure clean state
-        await reset_circuit_breaker()
-
-        with pytest.raises(ValueError, match="Invalid date format"):
-            # This should fail in date normalization before making any request
-            await get_rate("invalid-date-32-13-2025", "USD", "EUR")
-
-
-class TestDateNormalization:
-    """Test cases for date normalization helper function."""
-
-    def test_normalize_date_formats(self):
-        """Test various date format normalization."""
-        assert _normalize_date("2025-07-10") == "2025-07-10"
-        assert _normalize_date("07/10/2025") == "2025-07-10"
-        assert _normalize_date("July 10, 2025") == "2025-07-10"
-        assert _normalize_date("10 Jul 2025") == "2025-07-10"
-
-    def test_normalize_date_invalid(self):
-        """Test that invalid dates raise ValueError."""
-        with pytest.raises(ValueError, match="Invalid date format"):
-            _normalize_date("invalid-date")
-
-        with pytest.raises(ValueError, match="Invalid date format"):
-            _normalize_date("32-13-2025")
 
 
 class TestCircuitBreakerHelpers:

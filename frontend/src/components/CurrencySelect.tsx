@@ -29,11 +29,11 @@ export default function CurrencySelect({ selectedCurrency, onCurrencyChange }: C
         
         // Convert to expected format with symbol from raw data
         const currencyArray: Currency[] = currencyData
-          .filter((currency: any) => currency.code?.length === 3) // Only ISO 3-letter codes
-          .map((currency: any) => ({
+          .filter((currency) => currency.code?.length === 3) // Only ISO 3-letter codes
+          .map((currency) => ({
             code: currency.code,
             name: currency.name,
-            symbol: currency.symbol || currency.code
+            symbol: currency.code // Use code as symbol since fetchCurrencies doesn't return symbol
           }));
         
         const sortedCurrencies = sortCurrencies(currencyArray);

@@ -1,6 +1,7 @@
 """Tests for Azure Document Intelligence adapter."""
 
 import os
+from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from app.azure_adapter import (
     DefaultContent,
     InvoiceData,
+    InvoiceDate,
     InvoiceTotal,
     SimpleInvoiceData,
     ValueCurrency,
@@ -25,7 +27,7 @@ class TestDataClasses:
     def test_invoice_data_creation(self):
         """Test InvoiceData creation with robust structure."""
         invoice_data = InvoiceData(
-            InvoiceDate=DefaultContent("2025-01-15", 0.95),
+            InvoiceDate=InvoiceDate(value_date=datetime(2025, 1, 15), confidence=0.95),
             InvoiceId=DefaultContent("INV-12345", 0.90),
             InvoiceTotal=InvoiceTotal(
                 value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="914.50", confidence=0.92
@@ -34,7 +36,7 @@ class TestDataClasses:
             VendorAddressRecipient=DefaultContent("123 Main St", 0.85),
         )
 
-        assert invoice_data.InvoiceDate.content == "2025-01-15"
+        assert invoice_data.InvoiceDate.value_date == datetime(2025, 1, 15)
         assert invoice_data.InvoiceId.content == "INV-12345"
         assert invoice_data.InvoiceTotal.value_currency.amount == 914.50
         assert invoice_data.InvoiceTotal.value_currency.currency_code == "USD"
@@ -72,7 +74,7 @@ class TestExtractFromAzureResponse:
         """Test successful extraction from Azure response."""
         # Mock Azure response structure
         mock_date_field = Mock()
-        mock_date_field.content = "2025-01-15"
+        mock_date_field.value_date = datetime(2025, 1, 15)
         mock_date_field.confidence = 0.95
 
         mock_total_field = Mock()
@@ -103,7 +105,7 @@ class TestExtractFromAzureResponse:
         result = _extract_from_azure_response(mock_result)
 
         assert result is not None
-        assert result.InvoiceDate.content == "2025-01-15"
+        assert result.InvoiceDate.value_date == datetime(2025, 1, 15)
         assert result.InvoiceTotal.value_currency.amount == 914.50
         assert result.InvoiceTotal.value_currency.currency_code == "USD"
         assert result.InvoiceTotal.content == "$914.50"
@@ -165,7 +167,7 @@ class TestConversionHelpers:
     def test_to_simple_format_complete(self):
         """Test conversion from full to simple format with all fields."""
         full_data = InvoiceData(
-            InvoiceDate=DefaultContent("2025-01-15", 0.95),
+            InvoiceDate=InvoiceDate(value_date=datetime(2025, 1, 15), confidence=0.95),
             InvoiceId=DefaultContent("INV-12345", 0.90),
             InvoiceTotal=InvoiceTotal(
                 value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="914.50", confidence=0.92
@@ -176,7 +178,7 @@ class TestConversionHelpers:
 
         result = to_simple_format(full_data, "test_invoice.pdf")
 
-        assert result.date == "2025-01-15"
+        assert result.date == "15-01-2025"
         assert result.total == 914.50
         assert result.currency == "USD"
         assert result.vendor == "Test Company Inc."  # Should prefer VendorName
@@ -281,7 +283,7 @@ class TestExtractInvoice:
 
             # Mock successful Azure response
             mock_date_field = Mock()
-            mock_date_field.content = "2025-01-15"
+            mock_date_field.value_date = datetime(2025, 1, 15)
             mock_date_field.confidence = 0.95
 
             mock_total_field = Mock()
@@ -313,7 +315,7 @@ class TestExtractInvoice:
             result = await extract_invoice("test_invoice.pdf")
 
             assert result is not None
-            assert result.InvoiceDate.content == "2025-01-15"
+            assert result.InvoiceDate.value_date == datetime(2025, 1, 15)
             assert result.InvoiceTotal.value_currency.amount == 914.50
             assert result.InvoiceTotal.value_currency.currency_code == "USD"
             assert result.VendorName.content == "Test Company Inc."
@@ -360,7 +362,7 @@ class TestExtractInvoice:
         """Test successful simple extraction."""
         # Mock full extraction result
         full_data = InvoiceData(
-            InvoiceDate=DefaultContent("2025-01-15", 0.95),
+            InvoiceDate=InvoiceDate(value_date=datetime(2025, 1, 15), confidence=0.95),
             InvoiceId=DefaultContent("INV-12345", 0.90),
             InvoiceTotal=InvoiceTotal(
                 value_currency=ValueCurrency(amount=914.50, currency_code="USD"), content="914.50", confidence=0.92
@@ -374,7 +376,7 @@ class TestExtractInvoice:
         result = await extract_invoice_simple("test_invoice.pdf")
 
         assert result is not None
-        assert result.date == "2025-01-15"
+        assert result.date == "15-01-2025"
         assert result.total == 914.50
         assert result.currency == "USD"
         assert result.vendor == "Test Company Inc."

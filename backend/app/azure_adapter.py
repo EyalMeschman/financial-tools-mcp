@@ -2,12 +2,12 @@
 
 import os
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
 from azure.core.credentials import AzureKeyCredential
 from dotenv import load_dotenv
-from datetime import datetime
 
 load_dotenv()
 

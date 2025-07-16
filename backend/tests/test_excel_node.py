@@ -1,11 +1,12 @@
 """Tests for the excel node."""
 
+from datetime import datetime
 from io import BytesIO
 
 import pytest
 from openpyxl import load_workbook
 
-from app.azure_adapter import DefaultContent, InvoiceData, InvoiceTotal, ValueCurrency
+from app.azure_adapter import DefaultContent, InvoiceData, InvoiceDate, InvoiceTotal, ValueCurrency
 from langgraph_nodes import excel
 
 
@@ -90,7 +91,7 @@ class TestExcelNode:
         # Create test invoice data
         invoice = InvoiceData(
             InvoiceId=DefaultContent(content="INV-001", confidence=0.95),
-            InvoiceDate=DefaultContent(content="2024-01-15", confidence=0.95),
+            InvoiceDate=InvoiceDate(value_date=datetime(2024, 1, 15), confidence=0.95),
             VendorName=DefaultContent(content="Acme Corp", confidence=0.95),
             VendorAddressRecipient=DefaultContent(content="123 Business St", confidence=0.95),
             InvoiceTotal=InvoiceTotal(
@@ -116,7 +117,7 @@ class TestExcelNode:
         ws = wb.active
 
         # Check data row per spec (different currency: EUR vs USD)
-        assert ws.cell(row=2, column=1).value == "2024-01-15"  # Date
+        assert ws.cell(row=2, column=1).value == "15-01-2024"  # Date
         assert ws.cell(row=2, column=2).value == "0001"  # Invoice Suffix (from InvoiceId)
         assert ws.cell(row=2, column=3).value == "N/A"  # USD Total Price (not converted yet)
         assert ws.cell(row=2, column=4).value == 1234.56  # Foreign Currency Total Price
@@ -161,7 +162,7 @@ class TestExcelNode:
         # Create multiple test invoices
         invoice1 = InvoiceData(
             InvoiceId=DefaultContent(content="INV-001", confidence=0.95),
-            InvoiceDate=DefaultContent(content="2024-01-15", confidence=0.95),
+            InvoiceDate=InvoiceDate(value_date=datetime(2024, 1, 15), confidence=0.95),
             VendorName=DefaultContent(content="Vendor A", confidence=0.95),
             VendorAddressRecipient=DefaultContent(content="Address A", confidence=0.95),
             InvoiceTotal=InvoiceTotal(
@@ -172,7 +173,7 @@ class TestExcelNode:
 
         invoice2 = InvoiceData(
             InvoiceId=DefaultContent(content="INV-002", confidence=0.95),
-            InvoiceDate=DefaultContent(content="2024-01-16", confidence=0.95),
+            InvoiceDate=InvoiceDate(value_date=datetime(2024, 1, 16), confidence=0.95),
             VendorName=DefaultContent(content="Vendor B", confidence=0.95),
             VendorAddressRecipient=DefaultContent(content="Address B", confidence=0.95),
             InvoiceTotal=InvoiceTotal(
@@ -192,13 +193,13 @@ class TestExcelNode:
         ws = wb.active
 
         # Check first invoice
-        assert ws.cell(row=2, column=1).value == "2024-01-15"  # Date
+        assert ws.cell(row=2, column=1).value == "15-01-2024"  # Date
         assert ws.cell(row=2, column=2).value == "0001"  # Invoice Suffix
         assert ws.cell(row=2, column=5).value == "USD"  # Foreign Currency Code
         assert ws.cell(row=2, column=7).value == "Vendor A"  # Vendor Name
 
         # Check second invoice
-        assert ws.cell(row=3, column=1).value == "2024-01-16"  # Date
+        assert ws.cell(row=3, column=1).value == "16-01-2024"  # Date
         assert ws.cell(row=3, column=2).value == "0002"  # Invoice Suffix
         assert ws.cell(row=3, column=5).value == "EUR"  # Foreign Currency Code
         assert ws.cell(row=3, column=7).value == "Vendor B"  # Vendor Name
@@ -208,7 +209,7 @@ class TestExcelNode:
         """Test that Excel file has proper formatting."""
         invoice = InvoiceData(
             InvoiceId=DefaultContent(content="INV-001", confidence=0.95),
-            InvoiceDate=DefaultContent(content="2024-01-15", confidence=0.95),
+            InvoiceDate=InvoiceDate(value_date=datetime(2024, 1, 15), confidence=0.95),
             VendorName=DefaultContent(content="Test Vendor", confidence=0.95),
             VendorAddressRecipient=DefaultContent(content="Test Address", confidence=0.95),
             InvoiceTotal=InvoiceTotal(

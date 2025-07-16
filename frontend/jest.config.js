@@ -9,6 +9,11 @@ export default {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {
         jsx: 'react-jsx',
+        module: 'ES2022',
+        target: 'ES2022',
+        moduleResolution: 'node',
+        allowSyntheticDefaultImports: true,
+        esModuleInterop: true,
       },
     }],
   },

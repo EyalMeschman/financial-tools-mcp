@@ -53,3 +53,13 @@ class MockIntersectionObserver {
 }
 
 global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
+// Mock import.meta for Vite environment variables
+Object.defineProperty(globalThis, 'import.meta', {
+  value: {
+    env: {
+      VITE_API_BASE_URL: '',
+    },
+  },
+  writable: true,
+});
