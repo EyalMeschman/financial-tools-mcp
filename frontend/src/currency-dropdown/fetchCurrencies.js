@@ -1,3 +1,5 @@
+import { getCached, setCached } from '../cache.js';
+
 export class CurrencyFetchError extends Error {
   constructor(message, cause) {
     super(message);
@@ -7,6 +9,16 @@ export class CurrencyFetchError extends Error {
 }
 
 export async function fetchCurrencies(url, { timeoutMs = 5000 } = {}) {
+  const cacheKey = 'currencies_v1';
+  const cacheTtl = 86400; // 24 hours in seconds
+  
+  // Try to get from cache first
+  const cachedData = getCached(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
+
+  // If not in cache, fetch from network
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -31,18 +43,24 @@ export async function fetchCurrencies(url, { timeoutMs = 5000 } = {}) {
     }
 
     // Handle both array and object formats
+    let processedData;
     if (Array.isArray(data)) {
-      return data.map(item => ({
+      processedData = data.map(item => ({
         code: item.code,
         name: item.name
       }));
     } else {
       // Handle object format like { "USD": { "name": "US Dollar" }, ... }
-      return Object.entries(data).map(([code, currencyData]) => ({
+      processedData = Object.entries(data).map(([code, currencyData]) => ({
         code,
         name: currencyData.name
       }));
     }
+
+    // Cache the processed data
+    setCached(cacheKey, processedData, cacheTtl);
+    
+    return processedData;
 
   } catch (error) {
     clearTimeout(timeoutId);

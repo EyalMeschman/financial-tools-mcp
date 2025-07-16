@@ -1,11 +1,22 @@
 import { fetchCurrencies, CurrencyFetchError } from './fetchCurrencies.js';
+import { getCached, setCached, clearAllCache } from '../cache.js';
 
 // Mock fetch
 global.fetch = jest.fn();
 
-describe('fetchCurrencies', () => {
+// Mock cache functions
+jest.mock('../cache.js', () => ({
+  getCached: jest.fn(),
+  setCached: jest.fn(),
+  clearAllCache: jest.fn()
+}));
+
+describe('fetchCurrencies with Cache', () => {
   beforeEach(() => {
     fetch.mockClear();
+    getCached.mockClear();
+    setCached.mockClear();
+    clearAllCache.mockClear();
     jest.clearAllTimers();
     jest.useFakeTimers();
   });
@@ -15,114 +26,220 @@ describe('fetchCurrencies', () => {
     jest.useRealTimers();
   });
 
-  it('should fetch currencies successfully', async () => {
-    const mockData = [
-      { code: 'USD', name: 'US Dollar' },
-      { code: 'EUR', name: 'Euro' }
-    ];
+  describe('Cache Integration', () => {
+    it('should fetch from network on first call (cache miss)', async () => {
+      const mockData = {
+        USD: { name: 'US Dollar' },
+        EUR: { name: 'Euro' }
+      };
 
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData
+      const expectedResult = [
+        { code: 'USD', name: 'US Dollar' },
+        { code: 'EUR', name: 'Euro' }
+      ];
+
+      // Mock cache miss
+      getCached.mockReturnValue(null);
+      
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData
+      });
+
+      const result = await fetchCurrencies('https://api.example.com/currencies');
+
+      expect(getCached).toHaveBeenCalledWith('currencies_v1');
+      expect(fetch).toHaveBeenCalledWith('https://api.example.com/currencies', {
+        signal: expect.any(AbortSignal)
+      });
+      expect(setCached).toHaveBeenCalledWith('currencies_v1', expectedResult, 86400);
+      expect(result).toEqual(expectedResult);
     });
 
-    const result = await fetchCurrencies('https://api.example.com/currencies');
+    it('should use cache on second call within TTL (cache hit)', async () => {
+      const cachedData = [
+        { code: 'USD', name: 'US Dollar' },
+        { code: 'EUR', name: 'Euro' }
+      ];
 
-    expect(fetch).toHaveBeenCalledWith('https://api.example.com/currencies', {
-      signal: expect.any(AbortSignal)
-    });
-    expect(result).toEqual(mockData);
-  });
+      // Mock cache hit
+      getCached.mockReturnValue(cachedData);
 
-  it('should throw CurrencyFetchError on timeout', async () => {
-    fetch.mockImplementationOnce(() => 
-      new Promise(resolve => setTimeout(resolve, 6000))
-    );
+      const result = await fetchCurrencies('https://api.example.com/currencies');
 
-    const promise = fetchCurrencies('https://api.example.com/currencies', { timeoutMs: 1000 });
-
-    jest.advanceTimersByTime(1000);
-
-    await expect(promise).rejects.toThrow(CurrencyFetchError);
-    await expect(promise).rejects.toThrow('Request timed out after 1000ms');
-  });
-
-  it('should throw CurrencyFetchError on HTTP error', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-      statusText: 'Not Found'
+      expect(getCached).toHaveBeenCalledWith('currencies_v1');
+      expect(fetch).not.toHaveBeenCalled();
+      expect(setCached).not.toHaveBeenCalled();
+      expect(result).toEqual(cachedData);
     });
 
-    await expect(fetchCurrencies('https://api.example.com/currencies'))
-      .rejects.toThrow(CurrencyFetchError);
-    await expect(fetchCurrencies('https://api.example.com/currencies'))
-      .rejects.toThrow('HTTP 404: Not Found');
-  });
+    it('should fetch from network after TTL expired', async () => {
+      const mockData = {
+        USD: { name: 'US Dollar' },
+        EUR: { name: 'Euro' },
+        GBP: { name: 'British Pound' }
+      };
 
-  it('should throw CurrencyFetchError on invalid JSON', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => {
-        throw new SyntaxError('Unexpected token');
-      }
+      const expectedResult = [
+        { code: 'USD', name: 'US Dollar' },
+        { code: 'EUR', name: 'Euro' },
+        { code: 'GBP', name: 'British Pound' }
+      ];
+
+      // Mock cache miss (expired)
+      getCached.mockReturnValue(null);
+      
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData
+      });
+
+      const result = await fetchCurrencies('https://api.example.com/currencies');
+
+      expect(getCached).toHaveBeenCalledWith('currencies_v1');
+      expect(fetch).toHaveBeenCalledWith('https://api.example.com/currencies', {
+        signal: expect.any(AbortSignal)
+      });
+      expect(setCached).toHaveBeenCalledWith('currencies_v1', expectedResult, 86400);
+      expect(result).toEqual(expectedResult);
     });
 
-    await expect(fetchCurrencies('https://api.example.com/currencies'))
-      .rejects.toThrow(CurrencyFetchError);
-    await expect(fetchCurrencies('https://api.example.com/currencies'))
-      .rejects.toThrow('Invalid JSON response');
-  });
+    it('should cache processed data, not raw response', async () => {
+      const mockData = {
+        USD: { name: 'US Dollar', symbol: '$', extra: 'ignored' },
+        EUR: { name: 'Euro', symbol: '€', extra: 'ignored' }
+      };
 
-  it('should throw CurrencyFetchError when response is not an array', async () => {
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ error: 'Invalid format' })
+      const expectedProcessedData = [
+        { code: 'USD', name: 'US Dollar' },
+        { code: 'EUR', name: 'Euro' }
+      ];
+
+      getCached.mockReturnValue(null);
+      
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData
+      });
+
+      await fetchCurrencies('https://api.example.com/currencies');
+
+      expect(setCached).toHaveBeenCalledWith('currencies_v1', expectedProcessedData, 86400);
     });
 
-    await expect(fetchCurrencies('https://api.example.com/currencies'))
-      .rejects.toThrow(CurrencyFetchError);
-    await expect(fetchCurrencies('https://api.example.com/currencies'))
-      .rejects.toThrow('Response is not an array');
-  });
+    it('should handle array format data and cache it', async () => {
+      const mockData = [
+        { code: 'USD', name: 'US Dollar', extra: 'ignored' },
+        { code: 'EUR', name: 'Euro', extra: 'ignored' }
+      ];
 
-  it('should use default timeout of 5000ms', async () => {
-    fetch.mockImplementationOnce(() => 
-      new Promise(resolve => setTimeout(resolve, 6000))
-    );
+      const expectedProcessedData = [
+        { code: 'USD', name: 'US Dollar' },
+        { code: 'EUR', name: 'Euro' }
+      ];
 
-    const promise = fetchCurrencies('https://api.example.com/currencies');
+      getCached.mockReturnValue(null);
+      
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData
+      });
 
-    jest.advanceTimersByTime(5000);
+      await fetchCurrencies('https://api.example.com/currencies');
 
-    await expect(promise).rejects.toThrow('Request timed out after 5000ms');
-  });
-
-  it('should handle network errors', async () => {
-    fetch.mockRejectedValueOnce(new Error('Network failure'));
-
-    await expect(fetchCurrencies('https://api.example.com/currencies'))
-      .rejects.toThrow(CurrencyFetchError);
-    await expect(fetchCurrencies('https://api.example.com/currencies'))
-      .rejects.toThrow('Network error');
-  });
-
-  it('should map response data to code and name properties', async () => {
-    const mockData = [
-      { code: 'USD', name: 'US Dollar', extra: 'ignored' },
-      { code: 'EUR', name: 'Euro', symbol: '€' }
-    ];
-
-    fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData
+      expect(setCached).toHaveBeenCalledWith('currencies_v1', expectedProcessedData, 86400);
     });
 
-    const result = await fetchCurrencies('https://api.example.com/currencies');
+    it('should not cache on network error', async () => {
+      getCached.mockReturnValue(null);
+      fetch.mockRejectedValueOnce(new Error('Network failure'));
 
-    expect(result).toEqual([
-      { code: 'USD', name: 'US Dollar' },
-      { code: 'EUR', name: 'Euro' }
-    ]);
+      await expect(fetchCurrencies('https://api.example.com/currencies'))
+        .rejects.toThrow(CurrencyFetchError);
+
+      expect(getCached).toHaveBeenCalledWith('currencies_v1');
+      expect(fetch).toHaveBeenCalled();
+      expect(setCached).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Existing Functionality', () => {
+    beforeEach(() => {
+      // Mock cache miss for these tests
+      getCached.mockReturnValue(null);
+    });
+
+    it('should throw CurrencyFetchError on timeout', async () => {
+      fetch.mockImplementationOnce(() => 
+        new Promise(resolve => setTimeout(resolve, 6000))
+      );
+
+      const promise = fetchCurrencies('https://api.example.com/currencies', { timeoutMs: 1000 });
+
+      jest.advanceTimersByTime(1000);
+
+      await expect(promise).rejects.toThrow(CurrencyFetchError);
+      await expect(promise).rejects.toThrow('Request timed out after 1000ms');
+    });
+
+    it('should throw CurrencyFetchError on HTTP error', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found'
+      });
+
+      await expect(fetchCurrencies('https://api.example.com/currencies'))
+        .rejects.toThrow(CurrencyFetchError);
+      await expect(fetchCurrencies('https://api.example.com/currencies'))
+        .rejects.toThrow('HTTP 404: Not Found');
+    });
+
+    it('should throw CurrencyFetchError on invalid JSON', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => {
+          throw new SyntaxError('Unexpected token');
+        }
+      });
+
+      await expect(fetchCurrencies('https://api.example.com/currencies'))
+        .rejects.toThrow(CurrencyFetchError);
+      await expect(fetchCurrencies('https://api.example.com/currencies'))
+        .rejects.toThrow('Invalid JSON response');
+    });
+
+    it('should throw CurrencyFetchError when response is not a valid object', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => 'invalid-response'
+      });
+
+      await expect(fetchCurrencies('https://api.example.com/currencies'))
+        .rejects.toThrow(CurrencyFetchError);
+      await expect(fetchCurrencies('https://api.example.com/currencies'))
+        .rejects.toThrow('Response is not a valid object');
+    });
+
+    it('should use default timeout of 5000ms', async () => {
+      fetch.mockImplementationOnce(() => 
+        new Promise(resolve => setTimeout(resolve, 6000))
+      );
+
+      const promise = fetchCurrencies('https://api.example.com/currencies');
+
+      jest.advanceTimersByTime(5000);
+
+      await expect(promise).rejects.toThrow('Request timed out after 5000ms');
+    });
+
+    it('should handle network errors', async () => {
+      fetch.mockRejectedValueOnce(new Error('Network failure'));
+
+      await expect(fetchCurrencies('https://api.example.com/currencies'))
+        .rejects.toThrow(CurrencyFetchError);
+      await expect(fetchCurrencies('https://api.example.com/currencies'))
+        .rejects.toThrow('Network error');
+    });
   });
 });
