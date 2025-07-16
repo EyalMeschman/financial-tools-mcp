@@ -3,7 +3,7 @@ import { fetchCurrencies, clearCurrencyCache, getCurrencyCacheInfo } from '../..
 import { CurrencyFetchError } from '../../../lib/currency/types';
 
 // Helper function to create mock Response
-const createMockResponse = (data: any, options: { ok?: boolean; status?: number; statusText?: string } = {}) => {
+const createMockResponse = (data: unknown, options: { ok?: boolean; status?: number; statusText?: string } = {}) => {
   return {
     ok: options.ok ?? true,
     status: options.status ?? 200,
@@ -48,7 +48,7 @@ describe('fetchCurrencies', () => {
     
     // Mock global objects
     global.fetch = mockFetch;
-    global.localStorage = mockLocalStorage as any;
+    global.localStorage = mockLocalStorage as Storage;
     
     // Mock timers
     jest.useFakeTimers();

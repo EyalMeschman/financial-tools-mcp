@@ -1,4 +1,4 @@
-import { Currency, CurrencyFetchError } from './types';
+import { Currency, CurrencyFetchError, RawCurrencyData } from './types';
 import { RawCurrencyArraySchema, CurrencyArraySchema, CurrencyCacheEntrySchema } from './schema';
 
 /**
@@ -61,7 +61,7 @@ export async function fetchCurrencies(
     const rawData = await response.json();
 
     // Filter to only include currencies with 3-letter codes before validation
-    const filteredRawData = rawData.filter((currency: any) => currency.code?.length === 3);
+    const filteredRawData = rawData.filter((currency: RawCurrencyData) => currency.code?.length === 3);
     
     // Validate filtered data with Zod
     const validatedRawData = RawCurrencyArraySchema.parse(filteredRawData);
@@ -109,7 +109,7 @@ function getCachedCurrencies() {
 
     const parsedData = JSON.parse(cached);
     return CurrencyCacheEntrySchema.parse(parsedData);
-  } catch (error) {
+  } catch {
     // Invalid cache data, remove it
     localStorage.removeItem(CURRENCY_CACHE_KEY);
     return null;
@@ -123,7 +123,7 @@ function getCachedCurrencies() {
  * @param cacheTtl - Cache time-to-live in milliseconds
  * @returns boolean
  */
-function isCacheValid(cacheEntry: any, cacheTtl: number): boolean {
+function isCacheValid(cacheEntry: { timestamp: number }, cacheTtl: number): boolean {
   const now = Date.now();
   const age = now - cacheEntry.timestamp;
   return age < cacheTtl;

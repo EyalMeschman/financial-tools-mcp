@@ -18,7 +18,8 @@ export interface RawCurrencyData {
   code: string;
   name: string;
   symbol?: string;
-  [key: string]: any; // Allow additional properties from API
+  // Allow additional properties from API
+  [key: string]: string | undefined;
 }
 
 /**
