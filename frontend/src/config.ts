@@ -2,18 +2,6 @@
 // For test environment, just return empty string
 // For runtime, this will be replaced by Vite with the actual import.meta.env values
 
-// Define a global interface for Vite environment variables
-interface ViteEnv {
-  VITE_API_BASE_URL?: string;
-}
-
-// Extend the ImportMeta interface to include env property
-declare global {
-  interface ImportMeta {
-    env: ViteEnv;
-  }
-}
-
 function getApiBaseUrl(): string {
   // Test environment check
   if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
