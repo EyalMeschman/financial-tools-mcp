@@ -26,14 +26,23 @@ export async function fetchCurrencies(url, { timeoutMs = 5000 } = {}) {
 
     const data = await response.json();
     
-    if (!Array.isArray(data)) {
-      throw new CurrencyFetchError('Response is not an array', data);
+    if (!data || typeof data !== 'object') {
+      throw new CurrencyFetchError('Response is not a valid object', data);
     }
 
-    return data.map(item => ({
-      code: item.code,
-      name: item.name
-    }));
+    // Handle both array and object formats
+    if (Array.isArray(data)) {
+      return data.map(item => ({
+        code: item.code,
+        name: item.name
+      }));
+    } else {
+      // Handle object format like { "USD": { "name": "US Dollar" }, ... }
+      return Object.entries(data).map(([code, currencyData]) => ({
+        code,
+        name: currencyData.name
+      }));
+    }
 
   } catch (error) {
     clearTimeout(timeoutId);
