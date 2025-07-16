@@ -3,8 +3,9 @@ import { useDropzone } from 'react-dropzone';
 import { useSse } from '../hooks/useSse';
 import { ProgressBar } from './ProgressBar';
 import CurrencySelect from './CurrencySelect';
+import { getApiUrl } from '../config';
 
-const MAX_FILE_SIZE = 1024 * 1024; // 1MB
+const MAX_FILE_SIZE = 1024 * 1024 * 4; // 4MB
 const MAX_FILES = 100;
 const ACCEPTED_FILE_TYPES = {
   'application/pdf': ['.pdf'],
@@ -35,7 +36,7 @@ export default function UploadArea() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileResults, setFileResults] = useState<FileResult[]>([]);
-  const { data: progressData } = useSse<ProgressData>(jobId ? `/progress/${jobId}` : '');
+  const { data: progressData } = useSse<ProgressData>(jobId ? getApiUrl(`/progress/${jobId}`) : '');
 
   // Handle progress updates
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function UploadArea() {
       if (progressData.status === 'completed') {
         setIsProcessing(false);
         // Auto-download the report
-        window.location.href = `/download/${progressData.job_id}`;
+        window.location.href = getApiUrl(`/download/${progressData.job_id}`);
         // Update file results to show success
         const successResults = selectedFiles.map(file => ({
           filename: file.name,
@@ -70,7 +71,7 @@ export default function UploadArea() {
     });
 
     const totalFiles = selectedFiles.length + validFiles.length;
-    const filesToAdd = totalFiles > MAX_FILES 
+    const filesToAdd = totalFiles > MAX_FILES
       ? validFiles.slice(0, MAX_FILES - selectedFiles.length)
       : validFiles;
 
@@ -102,7 +103,7 @@ export default function UploadArea() {
     setFileResults([]);
 
     try {
-      const response = await fetch('/process-invoices', {
+      const response = await fetch(getApiUrl('/process-invoices'), {
         method: 'POST',
         body: formData,
       });
@@ -124,13 +125,12 @@ export default function UploadArea() {
     <div className="space-y-4">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          isProcessing
-            ? 'border-gray-200 bg-gray-100 cursor-not-allowed'
-            : isDragActive 
-            ? 'border-blue-400 bg-blue-50 cursor-pointer' 
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isProcessing
+          ? 'border-gray-200 bg-gray-100 cursor-not-allowed'
+          : isDragActive
+            ? 'border-blue-400 bg-blue-50 cursor-pointer'
             : 'border-gray-300 hover:border-gray-400 cursor-pointer'
-        }`}
+          }`}
       >
         <input {...getInputProps()} />
         <div className="text-gray-600">
@@ -140,7 +140,7 @@ export default function UploadArea() {
             <div>
               <p className="mb-2">Drag & drop files here, or click to select</p>
               <p className="text-sm text-gray-500">
-                PDF, JPG, PNG files only. Max 1MB per file, 100 files total.
+                PDF, JPG, PNG files only. Max 4MB per file, 100 files total.
               </p>
             </div>
           )}
@@ -152,7 +152,7 @@ export default function UploadArea() {
           <label htmlFor="currency-select" className="text-sm font-medium text-gray-700">
             Target Currency:
           </label>
-          <CurrencySelect 
+          <CurrencySelect
             selectedCurrency={targetCurrency}
             onCurrencyChange={setTargetCurrency}
           />
@@ -161,11 +161,10 @@ export default function UploadArea() {
           <button
             onClick={handleSubmit}
             disabled={isProcessing}
-            className={`px-4 py-2 text-white text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-              isProcessing 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className={`px-4 py-2 text-white text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isProcessing
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             data-testid="submit-button"
           >
             {isProcessing ? 'Processing...' : 'Process Invoices'}
@@ -196,13 +195,12 @@ export default function UploadArea() {
               return (
                 <div
                   key={`${file.name}-${index}`}
-                  className={`flex items-center justify-between p-2 rounded border ${
-                    fileResult?.status === 'success' 
-                      ? 'bg-green-50 border-green-200' 
-                      : fileResult?.status === 'error'
+                  className={`flex items-center justify-between p-2 rounded border ${fileResult?.status === 'success'
+                    ? 'bg-green-50 border-green-200'
+                    : fileResult?.status === 'error'
                       ? 'bg-red-50 border-red-200'
                       : 'bg-gray-50 border-gray-200'
-                  }`}
+                    }`}
                   data-testid="selected-file"
                 >
                   <div className="flex items-center space-x-2">
@@ -211,11 +209,10 @@ export default function UploadArea() {
                       ({(file.size / 1024).toFixed(1)} KB)
                     </span>
                     {fileResult && (
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        fileResult.status === 'success' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`text-xs px-2 py-1 rounded ${fileResult.status === 'success'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                        }`}>
                         {fileResult.status === 'success' ? '✓ Success' : '✗ Error'}
                       </span>
                     )}

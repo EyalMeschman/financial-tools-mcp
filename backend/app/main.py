@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -17,6 +18,15 @@ from app.models import Job
 from langgraph_nodes.pipeline import get_compiled_pipeline
 
 app = FastAPI(title="Invoice Converter API")
+
+# Add CORS middleware for development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Vite dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Mount static files (frontend)
 static_path = Path("static")
@@ -176,9 +186,8 @@ async def process_invoices(
     # Save files and prepare file list
     file_list = []
     for upload_file in files:
-        # Check file size (1MB limit)
-        if upload_file.size and upload_file.size > 1024 * 1024:
-            raise HTTPException(status_code=400, detail=f"File {upload_file.filename} exceeds 1MB limit")
+        if upload_file.size and upload_file.size > 1024 * 1024 * 4:
+            raise HTTPException(status_code=400, detail=f"File {upload_file.filename} exceeds 4MB limit")
 
         # Read file data
         file_data = await upload_file.read()

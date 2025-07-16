@@ -111,6 +111,34 @@ jobs:
             fi
           fi
 
+      - name: Build project
+        run: npm run build
+
+      - name: Check bundle size
+        run: |
+          # Install gzip-size-cli globally
+          npm install -g gzip-size-cli
+          
+          # Check JavaScript bundle size
+          for file in dist/assets/*.js; do
+            if [ -f "$file" ]; then
+              size=$(gzip-size "$file" --raw)
+              echo "Bundle size: $size bytes"
+              
+              # Convert to KB (1024 bytes = 1 KB)
+              size_kb=$((size / 1024))
+              echo "Bundle size: ${size_kb}KB"
+              
+              # Fail if larger than 150KB (reasonable limit for React apps)
+              if [ $size_kb -gt 150 ]; then
+                echo "❌ Bundle size ${size_kb}KB exceeds 150KB limit"
+                exit 1
+              else
+                echo "✅ Bundle size ${size_kb}KB is within 150KB limit"
+              fi
+            fi
+          done
+
       - name: Upload frontend coverage
         uses: actions/upload-artifact@v4
         with:
