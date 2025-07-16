@@ -2,6 +2,15 @@
 // For test environment, just return empty string
 // For runtime, this will be replaced by Vite with the actual import.meta.env values
 
+// Type for globalThis extensions that may exist in different environments
+interface GlobalWithImportMeta {
+  importMeta?: {
+    env?: {
+      VITE_API_BASE_URL?: string;
+    };
+  };
+}
+
 function getApiBaseUrl(): string {
   // Test environment check
   if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
@@ -11,7 +20,8 @@ function getApiBaseUrl(): string {
   // Try to access import.meta.env in a way that won't break Jest
   try {
     // Use globalThis to avoid direct import.meta usage during Jest compilation
-    const env = (globalThis as any).importMeta?.env || {};
+    const globalWithMeta = globalThis as GlobalWithImportMeta;
+    const env = globalWithMeta.importMeta?.env || {};
     return env.VITE_API_BASE_URL || '';
   } catch {
     // Fallback - this will be replaced by Vite during build
