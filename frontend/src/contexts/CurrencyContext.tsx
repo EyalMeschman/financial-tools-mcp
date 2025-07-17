@@ -3,7 +3,6 @@
  */
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { fetchCurrencies } from '../lib/currency';
 import type { Currency } from '../lib/currency';
 import { getApiUrl } from '../config';
 import { CurrencyContext } from './CurrencyContextTypes';
@@ -26,15 +25,23 @@ export function CurrencyProvider({ children, defaultCurrency = 'USD' }: Currency
         setLoading(true);
         setError(null);
         
-        const currencyData = await fetchCurrencies(getApiUrl('/currencies.json'));
+        // Fetch currencies directly from the public/currencies.json file
+        const response = await fetch(getApiUrl('/currencies.json'));
         
-        // Convert to expected format with symbol from raw data
-        const currencyArray: Currency[] = currencyData
-          .filter((currency) => currency.code?.length === 3) // Only ISO 3-letter codes
-          .map((currency) => ({
-            code: currency.code,
-            name: currency.name,
-            symbol: currency.code // Use code as symbol since fetchCurrencies doesn't return symbol
+        if (!response.ok) {
+          throw new Error(`Failed to fetch currencies: ${response.status}`);
+        }
+        
+        const rawData = await response.json();
+        
+        // The currencies.json is an object with currency codes as keys
+        // Convert to array format
+        const currencyArray: Currency[] = Object.entries(rawData)
+          .filter(([code]) => code.length === 3) // Only ISO 3-letter codes
+          .map(([code, data]: [string, any]) => ({
+            code,
+            name: data.name,
+            symbol: data.symbol || data.symbolNative || code // Use native symbol, fallback to symbol, then code
           }));
         
         setCurrencies(currencyArray);

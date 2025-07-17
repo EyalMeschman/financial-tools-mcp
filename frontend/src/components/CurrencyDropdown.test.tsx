@@ -1,33 +1,40 @@
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { CurrencyDropdown } from './CurrencyDropdown';
 import { CurrencyProvider } from '../contexts/CurrencyContext';
-import { fetchCurrencies } from '../lib/currency';
-import type { Currency } from '../lib/currency';
-
-// Mock the fetchCurrencies utility
-jest.mock('../lib/currency', () => ({
-  fetchCurrencies: jest.fn(),
-}));
 
 // Mock the config
 jest.mock('../config', () => ({
   getApiUrl: (path: string) => path,
 }));
 
-const mockCurrencyData: Currency[] = [
-  { code: 'USD', name: 'United States Dollar', symbol: 'USD' },
-  { code: 'EUR', name: 'Euro', symbol: 'EUR' },
-  { code: 'GBP', name: 'Pound Sterling', symbol: 'GBP' },
-  { code: 'ZMW', name: 'Zambian Kwacha', symbol: 'ZMW' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: 'JPY' },
-];
+// Keep this for reference in case we need it for future tests
+// const mockCurrencyData: Currency[] = [
+//   { code: 'USD', name: 'United States Dollar', symbol: 'USD' },
+//   { code: 'EUR', name: 'Euro', symbol: 'EUR' },
+//   { code: 'GBP', name: 'Pound Sterling', symbol: 'GBP' },
+//   { code: 'ZMW', name: 'Zambian Kwacha', symbol: 'ZMW' },
+//   { code: 'JPY', name: 'Japanese Yen', symbol: 'JPY' },
+// ];
+
+// Mock currency data in the format expected from currencies.json
+const mockCurrencyObjectData = {
+  USD: { name: 'United States Dollar', symbol: '$' },
+  EUR: { name: 'Euro', symbol: '€' },
+  GBP: { name: 'Pound Sterling', symbol: '£' },
+  ZMW: { name: 'Zambian Kwacha', symbol: 'ZMW' },
+  JPY: { name: 'Japanese Yen', symbol: '¥' },
+};
 
 describe('CurrencyDropdown', () => {
-  const mockFetchCurrencies = fetchCurrencies as jest.MockedFunction<typeof fetchCurrencies>;
+  const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFetchCurrencies.mockResolvedValue(mockCurrencyData);
+    global.fetch = mockFetch;
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => mockCurrencyObjectData,
+    } as Response);
   });
 
   afterEach(() => {
@@ -44,19 +51,22 @@ describe('CurrencyDropdown', () => {
 
   it('renders loading state initially', () => {
     // Mock a slow response to test loading state
-    let resolvePromise: (value: Currency[]) => void;
-    const slowPromise = new Promise<Currency[]>(resolve => {
+    let resolvePromise: (value: Response) => void;
+    const slowPromise = new Promise<Response>(resolve => {
       resolvePromise = resolve;
     });
     
-    mockFetchCurrencies.mockReturnValue(slowPromise);
+    mockFetch.mockReturnValue(slowPromise);
 
     renderWithProvider();
 
     expect(screen.getByText('Loading currencies...')).toBeInTheDocument();
     
     // Clean up by resolving the promise
-    resolvePromise!(mockCurrencyData);
+    resolvePromise!({
+      ok: true,
+      json: async () => mockCurrencyObjectData,
+    } as Response);
   });
 
   it('renders default USD value when currencies are loaded', async () => {
@@ -66,7 +76,7 @@ describe('CurrencyDropdown', () => {
       expect(screen.getByTestId('currency-dropdown')).toBeInTheDocument();
     });
 
-    expect(mockFetchCurrencies).toHaveBeenCalledWith('/currencies.json');
+    expect(mockFetch).toHaveBeenCalledWith('/currencies.json');
     const input = screen.getByRole('combobox');
     expect(input).toHaveValue('USD - United States Dollar');
   });
@@ -83,7 +93,7 @@ describe('CurrencyDropdown', () => {
   });
 
   it('renders error state when fetch fails', async () => {
-    mockFetchCurrencies.mockRejectedValue(new Error('Network error'));
+    mockFetch.mockRejectedValue(new Error('Network error'));
 
     renderWithProvider();
 
