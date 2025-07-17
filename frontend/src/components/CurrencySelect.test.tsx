@@ -1,14 +1,14 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import CurrencySelect from './CurrencySelect';
-import { fetchCurrencies } from '../utils/fetchCurrencies';
-import type { CurrencyData } from '../utils/fetchCurrencies';
+import { fetchCurrencies } from '../lib/currency';
+import type { Currency } from '../lib/currency';
 
 // Mock the fetchCurrencies utility
-jest.mock('../utils/fetchCurrencies', () => ({
+jest.mock('../lib/currency', () => ({
   fetchCurrencies: jest.fn()
 }));
 
-const mockCurrencyData: CurrencyData[] = [
+const mockCurrencyData: Currency[] = [
   { code: 'USD', name: 'United States Dollar' },
   { code: 'EUR', name: 'Euro' },
   { code: 'GBP', name: 'Pound Sterling' }
@@ -29,8 +29,8 @@ describe('CurrencySelect', () => {
 
   it('renders loading state initially', () => {
     // Mock a slow response to test loading state
-    let resolvePromise: (value: CurrencyData[]) => void;
-    const slowPromise = new Promise<CurrencyData[]>(resolve => {
+    let resolvePromise: (value: Currency[]) => void;
+    const slowPromise = new Promise<Currency[]>(resolve => {
       resolvePromise = resolve;
     });
     
