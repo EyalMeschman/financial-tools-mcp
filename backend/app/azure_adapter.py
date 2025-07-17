@@ -61,18 +61,6 @@ class InvoiceData:
     VendorAddressRecipient: DefaultContent | None
 
 
-# Simple output format for web API
-@dataclass
-class SimpleInvoiceData:
-    """Simplified invoice data structure for API responses."""
-
-    date: str | None = None
-    total: float | None = None
-    currency: str | None = None
-    vendor: str | None = None
-    filename: str | None = None
-
-
 async def extract_invoice(path: str) -> InvoiceData | None:
     """Extract invoice data using Azure Document Intelligence.
 
@@ -194,75 +182,3 @@ def _extract_from_azure_response(azure_result) -> InvoiceData | None:
         VendorName=vendor_name,
         VendorAddressRecipient=vendor_address,
     )
-
-
-# Conversion helpers between formats
-def to_simple_format(invoice: InvoiceData, filename: str) -> SimpleInvoiceData:
-    """Convert full InvoiceData to simplified format for API responses.
-
-    Args:
-        invoice: Full structured invoice data
-        filename: Original filename
-
-    Returns:
-        SimpleInvoiceData: Simplified format for JSON serialization
-    """
-    # Extract date
-    date = None
-    if invoice.InvoiceDate and invoice.InvoiceDate.value_date:
-        date = invoice.InvoiceDate.value_date.strftime("%d-%m-%Y")  # Format as DD-MM-YYYY
-
-    # Extract total and currency
-    total = None
-    currency = None
-    if invoice.InvoiceTotal and invoice.InvoiceTotal.value_currency:
-        total = invoice.InvoiceTotal.value_currency.amount
-        currency = invoice.InvoiceTotal.value_currency.currency_code
-
-    # Extract vendor (prefer VendorName, fallback to VendorAddressRecipient)
-    vendor = None
-    if invoice.VendorName and invoice.VendorName.content:
-        vendor = invoice.VendorName.content
-    elif invoice.VendorAddressRecipient and invoice.VendorAddressRecipient.content:
-        vendor = invoice.VendorAddressRecipient.content
-
-    return SimpleInvoiceData(date=date, total=total, currency=currency, vendor=vendor, filename=filename)
-
-
-def from_azure_response(azure_result) -> InvoiceData | None:
-    """Create InvoiceData from Azure Document Intelligence response.
-
-    This is an alias for _extract_from_azure_response for backward compatibility.
-    """
-    return _extract_from_azure_response(azure_result)
-
-
-# Convenience functions for different use cases
-async def extract_invoice_simple(path: str) -> SimpleInvoiceData | None:
-    """Extract invoice data in simplified format for web API.
-
-    Args:
-        path: Path to the invoice file
-
-    Returns:
-        SimpleInvoiceData: Simplified format or None if extraction fails
-    """
-    full_data = await extract_invoice(path)
-    if full_data:
-        filename = Path(path).name
-        return to_simple_format(full_data, filename)
-    return None
-
-
-# Synchronous wrapper for backward compatibility
-def extract_invoice_sync(path: str) -> InvoiceData | None:
-    """Synchronous wrapper for invoice extraction."""
-    import asyncio
-
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    return loop.run_until_complete(extract_invoice(path))
