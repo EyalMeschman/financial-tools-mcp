@@ -60,6 +60,11 @@ export async function fetchCurrencies(
 
     const rawData = await response.json();
 
+    // Ensure rawData is an array
+    if (!Array.isArray(rawData)) {
+      throw new CurrencyFetchError('Invalid response format: expected array');
+    }
+
     // Filter to only include currencies with 3-letter codes before validation
     const filteredRawData = rawData.filter((currency: RawCurrencyData) => currency.code?.length === 3);
     

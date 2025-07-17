@@ -28,8 +28,8 @@ describe('CurrencySelect', () => {
 
   it('renders loading state initially', () => {
     // Mock a slow response to test loading state
-    let resolvePromise: (value: CurrencyData[]) => void;
-    const slowPromise = new Promise<CurrencyData[]>(resolve => {
+    let resolvePromise: (value: Currency[]) => void;
+    const slowPromise = new Promise<Currency[]>(resolve => {
       resolvePromise = resolve;
     });
     
