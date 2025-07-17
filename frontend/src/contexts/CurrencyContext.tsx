@@ -1,20 +1,12 @@
 /**
  * Currency context for managing selected currency state across the application
  */
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { useState, ReactNode, useEffect } from 'react';
 import { fetchCurrencies } from '../lib/currency';
 import type { Currency } from '../lib/currency';
 import { getApiUrl } from '../config';
-
-interface CurrencyContextType {
-  selectedCurrency: string;
-  setSelectedCurrency: (currency: string) => void;
-  currencies: Currency[];
-  loading: boolean;
-  error: string | null;
-}
-
-const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
+import { CurrencyContext } from './CurrencyContextTypes';
+import type { CurrencyContextType } from './CurrencyContextTypes';
 
 interface CurrencyProviderProps {
   children: ReactNode;
@@ -71,10 +63,3 @@ export function CurrencyProvider({ children, defaultCurrency = 'USD' }: Currency
   );
 }
 
-export function useCurrencies() {
-  const context = useContext(CurrencyContext);
-  if (context === undefined) {
-    throw new Error('useCurrencies must be used within a CurrencyProvider');
-  }
-  return context;
-}
