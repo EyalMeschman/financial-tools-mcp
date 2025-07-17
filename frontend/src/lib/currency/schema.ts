@@ -7,7 +7,7 @@ export const RawCurrencySchema = z.object({
   code: z.string().min(3).max(3).regex(/^[A-Z]{3}$/, 'Currency code must be 3 uppercase letters'),
   name: z.string().min(1, 'Currency name is required'),
   symbol: z.string().optional(),
-});
+}).passthrough(); // Allow additional properties from API
 
 /**
  * Zod schema for validating processed currency data

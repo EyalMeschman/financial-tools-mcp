@@ -1,5 +1,10 @@
-import { Currency, CurrencyFetchError, RawCurrencyData } from './types';
-import { RawCurrencyArraySchema, CurrencyArraySchema, CurrencyCacheEntrySchema } from './schema';
+import { CurrencyFetchError } from './types';
+import { 
+  RawCurrencyArraySchema, 
+  CurrencyArraySchema, 
+  CurrencyCacheEntrySchema
+} from './schema';
+import type { Currency, RawCurrencyData } from './schema';
 
 /**
  * Cache key for storing currency data in localStorage

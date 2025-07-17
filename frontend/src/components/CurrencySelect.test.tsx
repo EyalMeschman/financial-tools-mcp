@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import CurrencySelect from './CurrencySelect';
-import { fetchCurrencies, Currency } from '../lib/currency';
+import { fetchCurrencies } from '../lib/currency';
+import type { Currency } from '../lib/currency';
 
 // Mock the fetchCurrencies utility
 jest.mock('../lib/currency', () => ({

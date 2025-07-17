@@ -6,16 +6,18 @@
  */
 
 // Types
-export type { Currency, RawCurrencyData, CurrencyCacheEntry } from './types';
 export { CurrencyFetchError } from './types';
 
-// Schemas
+// Schemas and Types
 export {
   RawCurrencySchema,
   CurrencySchema,
   RawCurrencyArraySchema,
   CurrencyArraySchema,
   CurrencyCacheEntrySchema,
+  type Currency,
+  type RawCurrencyData,
+  type CurrencyCacheEntry,
 } from './schema';
 
 // Fetch utilities

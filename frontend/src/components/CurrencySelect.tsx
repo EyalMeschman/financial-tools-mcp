@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from '@headlessui/react';
 import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/20/solid';
-import { fetchCurrencies, Currency } from '../lib/currency';
+import { fetchCurrencies } from '../lib/currency';
+import type { Currency } from '../lib/currency';
 import { filterCurrencies, sortCurrencies } from '../utils/currency-utils';
 import { getApiUrl } from '../config';
 
