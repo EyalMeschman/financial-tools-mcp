@@ -62,4 +62,3 @@ export function CurrencyProvider({ children, defaultCurrency = 'USD' }: Currency
     </CurrencyContext.Provider>
   );
 }
-
