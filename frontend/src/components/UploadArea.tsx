@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { useSse } from '../hooks/useSse';
 import { ProgressBar } from './ProgressBar';
 import CurrencySelect from './CurrencySelect';
+import { CurrencyDropdown } from './CurrencyDropdown';
 import { getApiUrl } from '../config';
 
 const MAX_FILE_SIZE = 1024 * 1024 * 4; // 4MB
@@ -155,6 +156,16 @@ export default function UploadArea() {
           <CurrencySelect
             selectedCurrency={targetCurrency}
             onCurrencyChange={setTargetCurrency}
+          />
+        </div>
+        <div className="flex items-center space-x-4 mt-2">
+          <label htmlFor="currency-dropdown" className="text-sm font-medium text-gray-700">
+            New Dropdown (Test):
+          </label>
+          <CurrencyDropdown
+            value={targetCurrency}
+            onChange={setTargetCurrency}
+            className="w-48"
           />
         </div>
         {selectedFiles.length > 0 && (
