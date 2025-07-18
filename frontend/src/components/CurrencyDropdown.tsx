@@ -82,7 +82,7 @@ export function CurrencyDropdown({ value, onChange, className = '' }: CurrencyDr
           <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
             <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
           </ComboboxButton>
-          <ComboboxOptions className="absolute z-10 mt-1 w-80 h-72 overflow-y-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <ComboboxOptions className="absolute z-10 mt-1 w-80 max-h-64 overflow-y-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {filteredCurrencies.length === 0 ? (
               <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
                 No currencies found.
