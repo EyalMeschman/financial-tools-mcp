@@ -4,7 +4,7 @@
  * - Click opens dropdown with search input + scrollable list
  */
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronUpDownIcon, MagnifyingGlassIcon, CheckIcon } from '@heroicons/react/20/solid';
+import { ChevronUpDownIcon } from '@heroicons/react/20/solid';
 import { useCurrencies } from '../hooks/useCurrencies';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -102,21 +102,18 @@ export function CurrencyDropdown({ value, onChange, className = '' }: CurrencyDr
         <div className="absolute z-10 mt-1 w-80 bg-white border border-gray-300 rounded-lg shadow-lg">
           {/* Search Input */}
           <div className="p-3 border-b border-gray-200">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search currencies..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                autoFocus
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Search currencies..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              autoFocus
+            />
           </div>
 
-          {/* Currency List - Fixed height showing ~7-8 items */}
-          <div className="h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          {/* Currency List - Small fixed height showing only ~4-5 items */}
+          <div className="h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {filteredCurrencies.length === 0 ? (
               <div className="px-3 py-2 text-gray-500 text-center">
                 No currencies found.
@@ -126,7 +123,7 @@ export function CurrencyDropdown({ value, onChange, className = '' }: CurrencyDr
                 <button
                   key={currency.code}
                   onClick={() => handleSelect(currency.code)}
-                  className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center justify-between border-b border-gray-100 last:border-b-0 ${
+                  className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
                     currency.code === currentValue ? 'bg-blue-50 text-blue-900' : 'text-gray-900'
                   }`}
                   data-testid={`currency-option-${currency.code}`}
@@ -134,9 +131,6 @@ export function CurrencyDropdown({ value, onChange, className = '' }: CurrencyDr
                   <span className="text-sm font-medium">
                     {currency.code} - {currency.name}
                   </span>
-                  {currency.code === currentValue && (
-                    <CheckIcon className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                  )}
                 </button>
               ))
             )}
