@@ -2,11 +2,13 @@
  * Modern currency dropdown component using Headless UI
  * This is the new implementation that will replace the legacy CurrencySelect
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from '@headlessui/react';
 import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/20/solid';
+import { FixedSizeList as List } from 'react-window';
 import { useCurrencies } from '../hooks/useCurrencies';
 import { useDebounce } from '../hooks/useDebounce';
+import type { Currency } from '../lib/currency';
 
 interface CurrencyDropdownProps {
   value?: string;
@@ -14,11 +16,48 @@ interface CurrencyDropdownProps {
   className?: string;
 }
 
+// Component for rendering individual currency items in the virtual list
+interface CurrencyItemProps {
+  index: number;
+  style: React.CSSProperties;
+  data: {
+    currencies: Currency[];
+    selectedCurrency: string;
+    onSelect: (currency: string) => void;
+  };
+}
+
+function CurrencyItem({ index, style, data }: CurrencyItemProps) {
+  const { currencies } = data;
+  const currency = currencies[index];
+  
+  if (!currency) return null;
+  
+  return (
+    <div style={style}>
+      <ComboboxOption
+        key={currency.code}
+        className="data-[focus]:bg-blue-50 data-[focus]:text-blue-900 relative cursor-default select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-gray-50"
+        value={currency.code}
+        data-testid={`currency-option-${currency.code}`}
+      >
+        <span className="data-[selected]:font-medium block truncate font-normal">
+          {currency.code} - {currency.name}
+        </span>
+        <span className="data-[selected]:flex absolute inset-y-0 left-0 hidden items-center pl-3 text-blue-600">
+          <CheckIcon className="h-5 w-5" aria-hidden="true" />
+        </span>
+      </ComboboxOption>
+    </div>
+  );
+}
+
 
 export function CurrencyDropdown({ value, onChange, className = '' }: CurrencyDropdownProps) {
   const { currencies, loading, error, selectedCurrency, setSelectedCurrency } = useCurrencies();
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 200);
+  const listRef = useRef<List>(null);
 
   // Use controlled value if provided, otherwise use context value
   const currentValue = value ?? selectedCurrency;
@@ -41,6 +80,22 @@ export function CurrencyDropdown({ value, onChange, className = '' }: CurrencyDr
       currency.name.toLowerCase().includes(lowerQuery)
     );
   }, [currencies, debouncedQuery]);
+
+  // Calculate the index of the selected currency for scrolling
+  const selectedIndex = useMemo(() => {
+    return filteredCurrencies.findIndex(currency => currency.code === currentValue);
+  }, [filteredCurrencies, currentValue]);
+
+  // Scroll to selected item when dropdown opens
+  useEffect(() => {
+    if (listRef.current && selectedIndex >= 0) {
+      listRef.current.scrollToItem(selectedIndex, 'center');
+    }
+  }, [selectedIndex]);
+
+  // Virtual list configuration
+  const ITEM_HEIGHT = 36; // Height of each item in pixels (py-2 = 8px top + 8px bottom + text height)
+  const LIST_HEIGHT = 288; // h-72 = 288px
 
 
   if (loading) {
@@ -81,27 +136,27 @@ export function CurrencyDropdown({ value, onChange, className = '' }: CurrencyDr
           <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
             <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
           </ComboboxButton>
-          <ComboboxOptions className="absolute z-10 mt-1 w-80 max-h-72 overflow-auto rounded-md bg-white text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+          <ComboboxOptions className="absolute z-10 mt-1 w-80 h-72 overflow-hidden rounded-md bg-white text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
             {filteredCurrencies.length === 0 ? (
               <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
                 No currencies found.
               </div>
             ) : (
-              filteredCurrencies.map((currency) => (
-                <ComboboxOption
-                  key={currency.code}
-                  className="data-[focus]:bg-blue-50 data-[focus]:text-blue-900 relative cursor-default select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-gray-50"
-                  value={currency.code}
-                  data-testid={`currency-option-${currency.code}`}
-                >
-                  <span className="data-[selected]:font-medium block truncate font-normal">
-                    {currency.code} - {currency.name}
-                  </span>
-                  <span className="data-[selected]:flex absolute inset-y-0 left-0 hidden items-center pl-3 text-blue-600">
-                    <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                </ComboboxOption>
-              ))
+              <List
+                ref={listRef}
+                height={LIST_HEIGHT}
+                width="100%"
+                itemCount={filteredCurrencies.length}
+                itemSize={ITEM_HEIGHT}
+                itemData={{
+                  currencies: filteredCurrencies,
+                  selectedCurrency: currentValue,
+                  onSelect: handleChange,
+                }}
+                className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+              >
+                {CurrencyItem}
+              </List>
             )}
           </ComboboxOptions>
         </div>
