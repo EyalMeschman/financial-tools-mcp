@@ -2,7 +2,6 @@ import { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useSse } from '../hooks/useSse';
 import { ProgressBar } from './ProgressBar';
-import CurrencySelect from './CurrencySelect';
 import { CurrencyDropdown } from './CurrencyDropdown';
 import { getApiUrl } from '../config';
 
@@ -150,22 +149,12 @@ export default function UploadArea() {
 
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <label htmlFor="currency-select" className="text-sm font-medium text-gray-700">
-            Target Currency:
-          </label>
-          <CurrencySelect
-            selectedCurrency={targetCurrency}
-            onCurrencyChange={setTargetCurrency}
-          />
-        </div>
-        <div className="flex items-center space-x-4 mt-2">
           <label htmlFor="currency-dropdown" className="text-sm font-medium text-gray-700">
-            New Dropdown (Test):
+            Target Currency:
           </label>
           <CurrencyDropdown
             value={targetCurrency}
             onChange={setTargetCurrency}
-            className="w-48"
           />
         </div>
         {selectedFiles.length > 0 && (

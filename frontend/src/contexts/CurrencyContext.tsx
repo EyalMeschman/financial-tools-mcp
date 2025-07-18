@@ -38,11 +38,14 @@ export function CurrencyProvider({ children, defaultCurrency = 'USD' }: Currency
         // Convert to array format
         const currencyArray: Currency[] = Object.entries(rawData)
           .filter(([code]) => code.length === 3) // Only ISO 3-letter codes
-          .map(([code, data]: [string, any]) => ({
-            code,
-            name: data.name,
-            symbol: data.symbol || data.symbolNative || code // Use native symbol, fallback to symbol, then code
-          }));
+          .map(([code, data]) => {
+            const currencyData = data as { name: string; symbol?: string; symbolNative?: string };
+            return {
+              code,
+              name: currencyData.name,
+              symbol: currencyData.symbol || currencyData.symbolNative || code // Use native symbol, fallback to symbol, then code
+            };
+          });
         
         setCurrencies(currencyArray);
       } catch (err) {
