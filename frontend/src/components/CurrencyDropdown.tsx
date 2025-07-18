@@ -89,10 +89,10 @@ export function CurrencyDropdown({ value, onChange, className = '' }: CurrencyDr
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-3 py-2.5 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between"
       >
-        <span className="truncate text-sm font-medium">
+        <span className="truncate text-sm font-medium text-gray-900 flex-grow">
           {selectedCurrencyData 
             ? `${selectedCurrencyData.code} - ${selectedCurrencyData.name}`
-            : currentValue || 'Select currency...'}
+            : (currentValue || 'USD - United States Dollar')}
         </span>
         <ChevronUpDownIcon className="h-5 w-5 text-gray-400 ml-2 flex-shrink-0" />
       </button>
