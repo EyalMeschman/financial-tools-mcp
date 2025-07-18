@@ -1,20 +1,12 @@
 /**
  * Currency context for managing selected currency state across the application
  */
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { fetchCurrencies } from '../lib/currency';
+import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import type { Currency } from '../lib/currency';
 import { getApiUrl } from '../config';
-
-interface CurrencyContextType {
-  selectedCurrency: string;
-  setSelectedCurrency: (currency: string) => void;
-  currencies: Currency[];
-  loading: boolean;
-  error: string | null;
-}
-
-const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
+import { CurrencyContext } from './CurrencyContextTypes';
+import type { CurrencyContextType } from './CurrencyContextTypes';
 
 interface CurrencyProviderProps {
   children: ReactNode;
@@ -33,16 +25,27 @@ export function CurrencyProvider({ children, defaultCurrency = 'USD' }: Currency
         setLoading(true);
         setError(null);
         
-        const currencyData = await fetchCurrencies(getApiUrl('/currencies.json'));
+        // Fetch currencies directly from the public/currencies.json file
+        const response = await fetch(getApiUrl('/currencies.json'));
         
-        // Convert to expected format with symbol from raw data
-        const currencyArray: Currency[] = currencyData
-          .filter((currency) => currency.code?.length === 3) // Only ISO 3-letter codes
-          .map((currency) => ({
-            code: currency.code,
-            name: currency.name,
-            symbol: currency.code // Use code as symbol since fetchCurrencies doesn't return symbol
-          }));
+        if (!response.ok) {
+          throw new Error(`Failed to fetch currencies: ${response.status}`);
+        }
+        
+        const rawData = await response.json();
+        
+        // The currencies.json is an object with currency codes as keys
+        // Convert to array format
+        const currencyArray: Currency[] = Object.entries(rawData)
+          .filter(([code]) => code.length === 3) // Only ISO 3-letter codes
+          .map(([code, data]) => {
+            const currencyData = data as { name: string; symbol?: string; symbolNative?: string };
+            return {
+              code,
+              name: currencyData.name,
+              symbol: currencyData.symbol || currencyData.symbolNative || code // Use native symbol, fallback to symbol, then code
+            };
+          });
         
         setCurrencies(currencyArray);
       } catch (err) {
@@ -69,12 +72,4 @@ export function CurrencyProvider({ children, defaultCurrency = 'USD' }: Currency
       {children}
     </CurrencyContext.Provider>
   );
-}
-
-export function useCurrencies() {
-  const context = useContext(CurrencyContext);
-  if (context === undefined) {
-    throw new Error('useCurrencies must be used within a CurrencyProvider');
-  }
-  return context;
 }
